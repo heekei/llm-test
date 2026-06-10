@@ -84,22 +84,35 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     title: 'Debug：找出代码错误',
     description: '测试代码审查和调试能力',
     category: 'coding',
-    prompt: `以下 Python 代码试图反转字符串，但存在错误。请找出所有问题并给出修正后的代码：
+    prompt: `以下 TypeScript 代码实现了一个用户订单处理函数，但存在几个问题。请找出所有问题并给出修正后的代码：
 
-\`\`\`python
-def reverse_string(s):
-    result = ""
-    for i in range(len(s)):
-        result = s[i] + result
-    return result
+\`\`\`typescript
+interface Order {
+  items: { name: string; price: number; quantity: number }[];
+  discountCode?: string;
+}
 
-# 测试
-print(reverse_string("hello"))  # 期望输出 "olleh"
+function calculateTotal(order: Order): number {
+  let total = 0;
+  for (const item of order.items) {
+    total += item.price * item.quantity;
+  }
+
+  if (order.discountCode === "SAVE10") {
+    total = total - 10;
+  }
+
+  if (order.discountCode === "PERCENT20") {
+    total = total * 0.8;
+  }
+
+  return total + "元";
+}
 \`\`\`
 
-请说明：1) 代码中的问题 2) 为什么会出错 3) 修正后的代码`,
+请说明：1) 所有代码问题（至少 3 个） 2) 每个问题的影响 3) 完整的修正代码`,
     temperature: 0.3,
-    maxTokens: 1500,
+    maxTokens: 2000,
   },
   {
     title: '系统设计：短链接服务',
@@ -306,5 +319,76 @@ print(reverse_string("hello"))  # 期望输出 "olleh"
 4. 这个问题在 AI 自动驾驶场景下的现实意义`,
     temperature: 0.6,
     maxTokens: 2500,
+  },
+
+  // ==================== Multi-turn / Conversation ====================
+  {
+    title: '多轮对话：点餐助手',
+    description: '测试多轮对话能力和上下文保持',
+    category: 'instruction',
+    systemPrompt: '你是一位餐厅点餐助手，需要根据顾客对话逐步完成点餐。请保持友好、专业，每轮只问 1-2 个问题。',
+    prompt: `请模拟一次完整的点餐对话。顾客说"我想点餐"，你作为助手引导完成：
+1. 询问用餐人数
+2. 推荐适合的套餐
+3. 确认口味偏好（辣/不辣）
+4. 确认饮品
+5. 复述完整订单并确认
+
+请输出完整的 5 轮对话，用"助手："和"顾客："标注。`,
+    temperature: 0.7,
+    maxTokens: 2000,
+  },
+  {
+    title: '翻译：技术文档英译中',
+    description: '测试翻译质量和专业术语处理',
+    category: 'knowledge',
+    prompt: `请将以下英文技术文档段落翻译成中文，要求：
+1. 专业术语准确
+2. 语句通顺自然
+3. 保留原文的技术含义
+
+---
+React is a JavaScript library for building user interfaces. It lets you compose complex UIs from small and isolated pieces of code called "components". React can render on the server using Node, and power mobile apps using React Native. A React component accepts arbitrary inputs called "props" and returns React elements describing what should appear on the screen.
+---`,
+    temperature: 0.3,
+    maxTokens: 1500,
+  },
+  {
+    title: '文本摘要：论文摘要生成',
+    description: '测试信息提取和摘要能力',
+    category: 'knowledge',
+    prompt: `请阅读以下段落并生成一个 100 字以内的摘要，抓住核心观点：
+
+---
+深度学习是机器学习的一个分支，它使用多层人工神经网络从大量数据中学习表示。与传统机器学习方法不同，深度学习模型可以自动发现用于分类或预测任务所需的特征表示，无需手动特征工程。这一能力使深度学习在计算机视觉、自然语言处理和语音识别等领域取得了突破性进展。然而，深度学习模型通常需要大量标注数据和计算资源，且模型决策过程难以解释，这限制了它在某些关键领域的应用。研究人员正在探索少样本学习、可解释 AI 和高效架构设计等方向来解决这些挑战。
+---`,
+    temperature: 0.3,
+    maxTokens: 1500,
+  },
+  {
+    title: '代码审查：改进函数设计',
+    description: '测试代码审查和重构建议能力',
+    category: 'coding',
+    prompt: `请审查以下 JavaScript 函数，从代码质量角度给出改进建议（至少 4 条）：
+
+\`\`\`javascript
+function processUsers(data) {
+  let result = [];
+  for (let i = 0; i < data.length; i++) {
+    if (data[i].active == true) {
+      let user = {};
+      user.name = data[i].firstName + ' ' + data[i].lastName;
+      user.email = data[i].email;
+      user.age = new Date().getFullYear() - data[i].birthYear;
+      result.push(user);
+    }
+  }
+  return result;
+}
+\`\`\`
+
+请从以下角度给出改进建议：1) 类型安全 2) 可读性 3) 性能 4) 函数式风格 5) 错误处理`,
+    temperature: 0.3,
+    maxTokens: 2000,
   },
 ];
