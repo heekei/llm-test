@@ -6,7 +6,13 @@ import { ScoreRunDto } from './dto/score-run.dto';
 import { AiScoreRequestDto } from './dto/ai-score.dto';
 
 interface AiScoreResult {
-  scores: { dimension: string; score: number; maxScore: number; weight: number; reasoning: string }[];
+  scores: {
+    dimension: string;
+    score: number;
+    maxScore: number;
+    weight: number;
+    reasoning: string;
+  }[];
   overall: string;
   judgeProviderId: string;
   judgeModelId: string;
@@ -35,12 +41,12 @@ const SCORING_SYSTEM_PROMPT = `你是一个专业的AI模型输出评估专家�
   "overall": "一句话总结本次评估（中文）"
 }`;
 
-function extractJson(text: string): any {
+function extractJson(text: string): Record<string, unknown> | null {
   // Try to extract JSON from markdown code blocks or raw JSON
   const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (codeBlockMatch) {
     try {
-      return JSON.parse(codeBlockMatch[1].trim());
+      return JSON.parse(codeBlockMatch[1].trim()) as Record<string, unknown>;
     } catch {
       // fall through
     }
@@ -49,7 +55,7 @@ function extractJson(text: string): any {
   const jsonMatch = text.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     try {
-      return JSON.parse(jsonMatch[0]);
+      return JSON.parse(jsonMatch[0]) as Record<string, unknown>;
     } catch {
       // fall through
     }
@@ -97,7 +103,11 @@ export class RunsService {
     private adapterFactory: AdapterFactory,
   ) {}
 
-  async findAll(params: { taskId?: string; providerId?: string; status?: string }) {
+  async findAll(params: {
+    taskId?: string;
+    providerId?: string;
+    status?: string;
+  }) {
     const where: any = {};
     if (params.taskId) where.taskId = params.taskId;
     if (params.providerId) where.providerId = params.providerId;
@@ -105,7 +115,10 @@ export class RunsService {
     const runs = await this.prisma.taskRun.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { task: { select: { id: true, title: true } }, provider: { select: { id: true, name: true } } },
+      include: {
+        task: { select: { id: true, title: true } },
+        provider: { select: { id: true, name: true } },
+      },
     });
     return runs.map(parseRunAiScores);
   }
@@ -113,7 +126,10 @@ export class RunsService {
   async findOne(id: string) {
     const run = await this.prisma.taskRun.findUnique({
       where: { id },
-      include: { task: true, provider: { select: { id: true, name: true, adapterType: true } } },
+      include: {
+        task: true,
+        provider: { select: { id: true, name: true, adapterType: true } },
+      },
     });
     if (!run) throw new NotFoundException(`Run ${id} not found`);
     return parseRunAiScores(run);
@@ -145,13 +161,17 @@ export class RunsService {
     const judgeProvider = await this.prisma.provider.findUnique({
       where: { id: dto.judgeProviderId },
     });
-    if (!judgeProvider) throw new Error(`裁判模型供应商 ${dto.judgeProviderId} 未找到`);
+    if (!judgeProvider)
+      throw new Error(`裁判模型供应商 ${dto.judgeProviderId} 未找到`);
 
     const adapter = this.adapterFactory.get(judgeProvider.adapterType);
     const apiKey = this.encryption.decrypt(judgeProvider.apiKey);
 
-    const userPrompt = `## 原始任务提示词\n${run.task.prompt}\n\n` +
-      (run.task.systemPrompt ? `## 系统提示词\n${run.task.systemPrompt}\n\n` : '') +
+    const userPrompt =
+      `## 原始任务提示词\n${run.task.prompt}\n\n` +
+      (run.task.systemPrompt
+        ? `## 系统提示词\n${run.task.systemPrompt}\n\n`
+        : '') +
       (run.thinkingOutput ? `## 模型思考过程\n${run.thinkingOutput}\n\n` : '') +
       (run.agentTrace ? `## 模型工具调用痕迹\n${run.agentTrace}\n\n` : '') +
       `## 模型回答\n${run.output}\n\n` +
@@ -173,36 +193,45 @@ export class RunsService {
     }
 
     // Validate and normalize scores
-    const dimensions = ['accuracy', 'completeness', 'coherence', 'creativity', 'instructionFollowing'];
+    const dimensions = [
+      'accuracy',
+      'completeness',
+      'coherence',
+      'creativity',
+      'instructionFollowing',
+    ];
     const weights: Record<string, number> = {
       accuracy: 0.25,
-      completeness: 0.20,
-      coherence: 0.20,
+      completeness: 0.2,
+      coherence: 0.2,
       creativity: 0.15,
-      instructionFollowing: 0.20,
+      instructionFollowing: 0.2,
     };
 
     const scores = dimensions.map((dim) => {
-      const s = parsed.scores.find((x: any) => x.dimension === dim);
+      const scoresArr = (parsed.scores as Array<Record<string, unknown>>) || [];
+      const s = scoresArr.find((x: any) => x.dimension === dim);
       return {
         dimension: dim,
         score: Math.max(1, Math.min(10, Math.round(Number(s?.score) || 5))),
         maxScore: 10,
         weight: weights[dim],
-        reasoning: String(s?.reasoning || '未提供评分理由'),
+        reasoning: String((s as any)?.reasoning || '未提供评分理由'),
       };
     });
 
     const newEntry: AiScoreResult = {
       scores,
-      overall: String(parsed.overall || ''),
+      overall: typeof parsed.overall === 'string' ? parsed.overall : '',
       judgeProviderId: dto.judgeProviderId,
       judgeModelId: dto.judgeModelId,
       judgedAt: new Date().toISOString(),
     };
 
     // Append to existing array (support multiple judges per run)
-    const existing: AiScoreResult[] = run.aiScores ? safeParseJson(run.aiScores) || [] : [];
+    const existing: AiScoreResult[] = run.aiScores
+      ? safeParseJson(run.aiScores) || []
+      : [];
     existing.push(newEntry);
 
     const updated = await this.prisma.taskRun.update({
@@ -217,7 +246,9 @@ export class RunsService {
     const run = await this.prisma.taskRun.findUnique({ where: { id } });
     if (!run) throw new NotFoundException(`运行 ${id} 未找到`);
 
-    const existing: AiScoreResult[] = run.aiScores ? safeParseJson(run.aiScores) || [] : [];
+    const existing: AiScoreResult[] = run.aiScores
+      ? safeParseJson(run.aiScores) || []
+      : [];
     if (judgeIndex < 0 || judgeIndex >= existing.length) {
       throw new Error('评分索引无效');
     }
@@ -236,7 +267,9 @@ export class RunsService {
     const runs = await this.prisma.taskRun.findMany({
       where: { taskId },
       orderBy: { createdAt: 'desc' },
-      include: { provider: { select: { id: true, name: true, adapterType: true } } },
+      include: {
+        provider: { select: { id: true, name: true, adapterType: true } },
+      },
     });
 
     return {

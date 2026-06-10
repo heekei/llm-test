@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import * as Docker from 'dockerode';
+import Docker from 'dockerode';
 import * as fs from 'fs/promises';
-import * as os from 'os';
 import { Readable } from 'stream';
 
 export interface ExecResult {
@@ -21,14 +20,19 @@ export class DockerService {
 
   constructor() {
     try {
-      const socketPath = process.platform === 'win32'
-        ? '//./pipe/docker_engine'
-        : '/var/run/docker.sock';
+      const socketPath =
+        process.platform === 'win32'
+          ? '//./pipe/docker_engine'
+          : '/var/run/docker.sock';
       this.docker = new Docker({ socketPath });
       this.available = true;
-      Logger.log(`DockerService initialized (${process.platform}, socket: ${socketPath})`);
-    } catch (err) {
-      Logger.warn('DockerService unavailable — Docker is not running on this host');
+      Logger.log(
+        `DockerService initialized (${process.platform}, socket: ${socketPath})`,
+      );
+    } catch {
+      Logger.warn(
+        'DockerService unavailable — Docker is not running on this host',
+      );
       this.docker = undefined!;
       this.available = false;
     }
@@ -47,14 +51,17 @@ export class DockerService {
     workspaceDir: string,
     timeoutSec: number,
   ): Promise<string> {
-    if (!this.available) throw new Error('Docker is not available on this host');
+    if (!this.available)
+      throw new Error('Docker is not available on this host');
 
     const img = image || DEFAULT_AGENT_IMAGE;
 
     // Ensure workspace directory exists on host
     await fs.mkdir(workspaceDir, { recursive: true });
 
-    Logger.debug(`Docker: creating container image=${img} workspace=${workspaceDir} timeout=${timeoutSec}s`);
+    Logger.debug(
+      `Docker: creating container image=${img} workspace=${workspaceDir} timeout=${timeoutSec}s`,
+    );
 
     const container = await this.docker.createContainer({
       Image: img,
@@ -88,11 +95,14 @@ export class DockerService {
     workingDir: string,
     timeoutMs: number = DEFAULT_TOOL_TIMEOUT_MS,
   ): Promise<ExecResult> {
-    if (!this.available) throw new Error('Docker is not available on this host');
+    if (!this.available)
+      throw new Error('Docker is not available on this host');
 
     const container = this.docker.getContainer(containerId);
 
-    Logger.debug(`Docker: exec in ${containerId.slice(0, 12)}: ${cmd.slice(0, 200)}`);
+    Logger.debug(
+      `Docker: exec in ${containerId.slice(0, 12)}: ${cmd.slice(0, 200)}`,
+    );
 
     const exec = await container.exec({
       Cmd: ['bash', '-c', cmd],
@@ -106,7 +116,9 @@ export class DockerService {
     // Collect output with timeout — docker multiplexes stdout/stderr into one stream
     const result = await this.collectDemuxStream(stream, timeoutMs);
 
-    Logger.debug(`Docker: exec result exit=${result.exitCode} stdout=${result.stdout.slice(0, 100)}`);
+    Logger.debug(
+      `Docker: exec result exit=${result.exitCode} stdout=${result.stdout.slice(0, 100)}`,
+    );
     return result;
   }
 
@@ -117,11 +129,15 @@ export class DockerService {
     if (!this.available) return;
     try {
       const container = this.docker.getContainer(containerId);
-      await container.stop({ t: 5 }).catch(() => {});
-      await container.remove({ force: true }).catch(() => {});
+      await container.stop({ t: 5 }).catch(() => {
+        // ignore stop errors
+      });
+      await container.remove({ force: true }).catch(() => {
+        // ignore remove errors
+      });
       Logger.debug(`Docker: container ${containerId.slice(0, 12)} destroyed`);
-    } catch (err) {
-      Logger.warn(`Docker: failed to destroy container ${containerId.slice(0, 12)}:`, err);
+    } catch {
+      // ignore stop/remove errors at runtime
     }
   }
 
@@ -144,7 +160,11 @@ export class DockerService {
       const timer = setTimeout(() => {
         if (!done) {
           done = true;
-          try { stream.destroy(); } catch {}
+          try {
+            stream.destroy();
+          } catch {
+            // ignore stream destroy errors
+          }
           resolve({ exitCode: -1, stdout, stderr: stderr + '\n[TIMEOUT]' });
         }
       }, timeoutMs);
@@ -192,14 +212,18 @@ export class DockerService {
   ): Promise<ExecResult> {
     return new Promise((resolve, reject) => {
       let stdout = '';
-      let stderr = '';
+      const stderr = '';
       const exitCode = -1;
       let done = false;
 
       const timer = setTimeout(() => {
         if (!done) {
           done = true;
-          try { stream.destroy(); } catch {}
+          try {
+            stream.destroy();
+          } catch {
+            // ignore stream destroy errors
+          }
           resolve({ exitCode, stdout, stderr: stderr + '\n[TIMEOUT]' });
         }
       }, timeoutMs);

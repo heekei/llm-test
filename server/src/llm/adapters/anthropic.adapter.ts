@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
-import { LlmAdapter, StreamChatParams, AgentChatParams, ContentBlock, ConversationMessage } from './adapter.interface';
+import {
+  LlmAdapter,
+  StreamChatParams,
+  AgentChatParams,
+  ContentBlock,
+  ConversationMessage,
+} from './adapter.interface';
 
 /**
  * Provider suffix paths commonly used for Anthropic-protocol endpoints.
@@ -99,12 +105,19 @@ export class AnthropicAdapter implements LlmAdapter {
     return null;
   }
 
-  private async tryFetchModelsUrl(url: string, apiKey: string): Promise<string[] | null> {
+  private async tryFetchModelsUrl(
+    url: string,
+    apiKey: string,
+  ): Promise<string[] | null> {
     // /v1/models is an OpenAI-compatible endpoint — all providers (including
     // Anthropic-protocol proxies) use Bearer auth for it, not x-api-key.
     // If Bearer gets 401/403, retry with x-api-key for providers that deviate.
     const authHeaders = [
-      { Authorization: `Bearer ${apiKey}`, 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      {
+        Authorization: `Bearer ${apiKey}`,
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
       // { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     ];
 
@@ -114,7 +127,9 @@ export class AnthropicAdapter implements LlmAdapter {
         const timer = setTimeout(() => ctrl.abort(), FETCH_TIMEOUT_MS);
         const response = await fetch(url, { headers, signal: ctrl.signal });
         clearTimeout(timer);
-        Logger.debug(`[Anthropic] listModels: ${url} -> ${response.status} (${Object.keys(headers)[0]})`);
+        Logger.debug(
+          `[Anthropic] listModels: ${url} -> ${response.status} (${Object.keys(headers)[0]})`,
+        );
         if (response.ok) {
           const data = await response.json();
           if (data.data?.length) {
@@ -134,7 +149,7 @@ export class AnthropicAdapter implements LlmAdapter {
 
   streamChat(params: StreamChatParams): Observable<string> {
     const subject = new Subject<string>();
-    this.doStreamChat(params, subject);
+    void this.doStreamChat(params, subject);
     return subject.asObservable();
   }
 
@@ -161,7 +176,9 @@ export class AnthropicAdapter implements LlmAdapter {
 
     const data = await response.json();
     // Filter out thinking content blocks — only return text
-    const textBlocks = (data.content || []).filter((c: any) => c.type === 'text');
+    const textBlocks = (data.content || []).filter(
+      (c: any) => c.type === 'text',
+    );
     const content = textBlocks.map((c: any) => c.text).join('');
     if (!content) {
       Logger.warn('Anthropic chat response missing text content', data);
@@ -201,17 +218,26 @@ export class AnthropicAdapter implements LlmAdapter {
     return body;
   }
 
-  private async doStreamChat(params: StreamChatParams, subject: Subject<string>) {
+  private async doStreamChat(
+    params: StreamChatParams,
+    subject: Subject<string>,
+  ) {
     try {
       const body = this.buildRequestBody(params, true);
 
       const base = this.normalizeBaseUrl(params.apiBaseUrl);
       const url = `${base}/v1/messages`;
-      Logger.debug(`Anthropic streamChat POST ${url}, model=${params.modelId}${body.thinking ? ', thinking=enabled' : ''}`);
+      Logger.debug(
+        `Anthropic streamChat POST ${url}, model=${params.modelId}${body.thinking ? ', thinking=enabled' : ''}`,
+      );
 
       const response = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-api-key': params.apiKey, 'anthropic-version': '2023-06-01' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': params.apiKey,
+          'anthropic-version': '2023-06-01',
+        },
         body: JSON.stringify(body),
       });
 
@@ -238,7 +264,11 @@ export class AnthropicAdapter implements LlmAdapter {
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed) continue;
-          const dataPrefix = trimmed.startsWith('data: ') ? 'data: ' : (trimmed.startsWith('data:') ? 'data:' : '');
+          const dataPrefix = trimmed.startsWith('data: ')
+            ? 'data: '
+            : trimmed.startsWith('data:')
+              ? 'data:'
+              : '';
           if (!dataPrefix) continue;
           const data = trimmed.slice(dataPrefix.length).trim();
           if (!data || data === '[DONE]') continue;
@@ -249,15 +279,24 @@ export class AnthropicAdapter implements LlmAdapter {
               totalTokens += delta.content.length;
               subject.next(JSON.stringify(delta));
             }
-            if (parsed.type === 'message_stop' || parsed.type === 'message_end') {
-              Logger.debug(`Anthropic stream completed, totalChars=${totalTokens}`);
+            if (
+              parsed.type === 'message_stop' ||
+              parsed.type === 'message_end'
+            ) {
+              Logger.debug(
+                `Anthropic stream completed, totalChars=${totalTokens}`,
+              );
               subject.complete();
               return;
             }
-          } catch { /* skip malformed lines */ }
+          } catch {
+            /* skip malformed lines */
+          }
         }
       }
-      Logger.debug(`Anthropic stream finished (reader done), totalChars=${totalTokens}`);
+      Logger.debug(
+        `Anthropic stream finished (reader done), totalChars=${totalTokens}`,
+      );
       subject.complete();
     } catch (error) {
       Logger.error('Anthropic streamChat error:', error);
@@ -269,7 +308,9 @@ export class AnthropicAdapter implements LlmAdapter {
    * Extract content delta from a parsed SSE event.
    * Returns { kind: "thinking" | "text", content: string } or null.
    */
-  private extractDelta(parsed: any): { kind: 'text' | 'thinking'; content: string } | null {
+  private extractDelta(
+    parsed: any,
+  ): { kind: 'text' | 'thinking'; content: string } | null {
     if (!parsed || typeof parsed !== 'object') return null;
 
     // Anthropic extended thinking: content_block_delta with thinking_delta
@@ -291,7 +332,10 @@ export class AnthropicAdapter implements LlmAdapter {
 
     // DeepSeek R1 reasoning_content (OpenAI protocol with reasoning)
     if (parsed.choices?.[0]?.delta?.reasoning_content != null) {
-      return { kind: 'thinking', content: parsed.choices[0].delta.reasoning_content };
+      return {
+        kind: 'thinking',
+        content: parsed.choices[0].delta.reasoning_content,
+      };
     }
 
     // Standard OpenAI delta.content
@@ -300,11 +344,16 @@ export class AnthropicAdapter implements LlmAdapter {
     }
 
     // Generic fallbacks
-    if (parsed.delta?.content != null) return { kind: 'text', content: parsed.delta.content };
-    if (parsed.delta?.type === 'text_delta' && parsed.delta?.text != null) return { kind: 'text', content: parsed.delta.text };
+    if (parsed.delta?.content != null)
+      return { kind: 'text', content: parsed.delta.content };
+    if (parsed.delta?.type === 'text_delta' && parsed.delta?.text != null)
+      return { kind: 'text', content: parsed.delta.text };
     if (parsed.text != null) return { kind: 'text', content: parsed.text };
     if (Array.isArray(parsed.content)) {
-      return { kind: 'text', content: parsed.content.map((c: any) => c.text ?? '').join('') };
+      return {
+        kind: 'text',
+        content: parsed.content.map((c: any) => c.text ?? '').join(''),
+      };
     }
 
     return null;
@@ -312,13 +361,21 @@ export class AnthropicAdapter implements LlmAdapter {
 
   private extractDeltaText(parsed: any): string | null {
     if (!parsed || typeof parsed !== 'object') return null;
-    if (parsed.type === 'content_block_delta' && parsed.delta?.text != null) return parsed.delta.text;
-    if (parsed.type === 'content_block_start' && parsed.content_block?.text != null) return parsed.content_block.text;
+    if (parsed.type === 'content_block_delta' && parsed.delta?.text != null)
+      return parsed.delta.text;
+    if (
+      parsed.type === 'content_block_start' &&
+      parsed.content_block?.text != null
+    )
+      return parsed.content_block.text;
     if (parsed.delta?.content != null) return parsed.delta.content;
-    if (parsed.delta?.type === 'text_delta' && parsed.delta?.text != null) return parsed.delta.text;
+    if (parsed.delta?.type === 'text_delta' && parsed.delta?.text != null)
+      return parsed.delta.text;
     if (parsed.text != null) return parsed.text;
-    if (parsed.choices?.[0]?.delta?.content != null) return parsed.choices[0].delta.content;
-    if (Array.isArray(parsed.content)) return parsed.content.map((c: any) => c.text ?? '').join('');
+    if (parsed.choices?.[0]?.delta?.content != null)
+      return parsed.choices[0].delta.content;
+    if (Array.isArray(parsed.content))
+      return parsed.content.map((c: any) => c.text ?? '').join('');
     return null;
   }
 
@@ -350,7 +407,7 @@ export class AnthropicAdapter implements LlmAdapter {
 
   streamAgentTurn(params: AgentChatParams): Observable<string> {
     const subject = new Subject<string>();
-    this.doStreamAgentTurn(params, subject);
+    void this.doStreamAgentTurn(params, subject);
     return subject.asObservable();
   }
 
@@ -373,7 +430,7 @@ export class AnthropicAdapter implements LlmAdapter {
 
     // Map tool definitions to Anthropic tools format
     if (params.tools && params.tools.length > 0) {
-      body.tools = params.tools.map(t => ({
+      body.tools = params.tools.map((t) => ({
         name: t.name,
         description: t.description,
         input_schema: t.inputSchema,
@@ -395,7 +452,7 @@ export class AnthropicAdapter implements LlmAdapter {
   }
 
   private mapMessagesToAnthropic(messages: ConversationMessage[]): any[] {
-    return messages.map(msg => {
+    return messages.map((msg) => {
       const content: any[] = [];
       for (const block of msg.content) {
         if (block.type === 'text') {
@@ -437,7 +494,10 @@ export class AnthropicAdapter implements LlmAdapter {
     return blocks;
   }
 
-  private async doStreamAgentTurn(params: AgentChatParams, subject: Subject<string>) {
+  private async doStreamAgentTurn(
+    params: AgentChatParams,
+    subject: Subject<string>,
+  ) {
     try {
       const body = this.buildAgentBody(params, true);
       const base = this.normalizeBaseUrl(params.apiBaseUrl);
@@ -465,7 +525,11 @@ export class AnthropicAdapter implements LlmAdapter {
       let buffer = '';
 
       // Track tool_use accumulation across content blocks
-      let currentToolUse: { id?: string; name?: string; inputJson: string } | null = null;
+      let currentToolUse: {
+        id?: string;
+        name?: string;
+        inputJson: string;
+      } | null = null;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -479,7 +543,11 @@ export class AnthropicAdapter implements LlmAdapter {
         for (const line of lines) {
           const trimmed = line.trim();
           if (!trimmed) continue;
-          const dataPrefix = trimmed.startsWith('data: ') ? 'data: ' : (trimmed.startsWith('data:') ? 'data:' : '');
+          const dataPrefix = trimmed.startsWith('data: ')
+            ? 'data: '
+            : trimmed.startsWith('data:')
+              ? 'data:'
+              : '';
           if (!dataPrefix) continue;
           const data = trimmed.slice(dataPrefix.length).trim();
           if (!data || data === '[DONE]') continue;
@@ -497,8 +565,16 @@ export class AnthropicAdapter implements LlmAdapter {
                 };
               }
               // Also handle text content_block_start
-              if (parsed.content_block?.text != null && parsed.content_block.type === 'text') {
-                subject.next(JSON.stringify({ kind: 'text', content: parsed.content_block.text }));
+              if (
+                parsed.content_block?.text != null &&
+                parsed.content_block.type === 'text'
+              ) {
+                subject.next(
+                  JSON.stringify({
+                    kind: 'text',
+                    content: parsed.content_block.text,
+                  }),
+                );
               }
             }
 
@@ -506,11 +582,18 @@ export class AnthropicAdapter implements LlmAdapter {
             if (parsed.type === 'content_block_delta') {
               // Thinking delta
               if (parsed.delta?.thinking) {
-                subject.next(JSON.stringify({ kind: 'thinking', content: parsed.delta.thinking }));
+                subject.next(
+                  JSON.stringify({
+                    kind: 'thinking',
+                    content: parsed.delta.thinking,
+                  }),
+                );
               }
               // Text delta
               if (parsed.delta?.text != null) {
-                subject.next(JSON.stringify({ kind: 'text', content: parsed.delta.text }));
+                subject.next(
+                  JSON.stringify({ kind: 'text', content: parsed.delta.text }),
+                );
               }
               // Tool input JSON delta
               if (parsed.delta?.partial_json && currentToolUse) {
@@ -522,23 +605,34 @@ export class AnthropicAdapter implements LlmAdapter {
             if (parsed.type === 'content_block_stop') {
               if (currentToolUse && currentToolUse.id && currentToolUse.name) {
                 let input: object = {};
-                try { input = JSON.parse(currentToolUse.inputJson); } catch { /* partial */ }
-                subject.next(JSON.stringify({
-                  kind: 'tool_use',
-                  id: currentToolUse.id,
-                  name: currentToolUse.name,
-                  input,
-                }));
+                try {
+                  input = JSON.parse(currentToolUse.inputJson);
+                } catch {
+                  /* partial */
+                }
+                subject.next(
+                  JSON.stringify({
+                    kind: 'tool_use',
+                    id: currentToolUse.id,
+                    name: currentToolUse.name,
+                    input,
+                  }),
+                );
               }
               currentToolUse = null;
             }
 
-            if (parsed.type === 'message_stop' || parsed.type === 'message_end') {
+            if (
+              parsed.type === 'message_stop' ||
+              parsed.type === 'message_end'
+            ) {
               subject.next(JSON.stringify({ kind: 'message_stop' }));
               subject.complete();
               return;
             }
-          } catch { /* skip */ }
+          } catch {
+            /* skip */
+          }
         }
       }
       subject.next(JSON.stringify({ kind: 'message_stop' }));

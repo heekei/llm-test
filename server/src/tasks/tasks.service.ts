@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../common/encryption.service';
@@ -25,7 +25,7 @@ export class TasksService {
       orderBy: { createdAt: 'desc' },
       include: { _count: { select: { runs: true } } },
     });
-    return tasks.map(t => this.parseDefaultTargets(t));
+    return tasks.map((t) => this.parseDefaultTargets(t));
   }
 
   async findOne(id: string) {
@@ -117,11 +117,18 @@ export class TasksService {
   runTaskStream(taskId: string, targets: RunTargetDto[]): Observable<SseEvent> {
     const out = new Subject<SseEvent>();
 
-    (async () => {
+    void (async () => {
       try {
-        const task = await this.prisma.task.findUnique({ where: { id: taskId } });
+        const task = await this.prisma.task.findUnique({
+          where: { id: taskId },
+        });
         if (!task) {
-          out.next({ data: JSON.stringify({ type: 'error', error: `Task ${taskId} not found` }) });
+          out.next({
+            data: JSON.stringify({
+              type: 'error',
+              error: `Task ${taskId} not found`,
+            }),
+          });
           out.complete();
           return;
         }
@@ -156,7 +163,7 @@ export class TasksService {
         // Run each target in parallel
         let pending = runs.length;
         runs.forEach((run, i) => {
-          this.executeRun(task, run, targets[i], out).finally(() => {
+          void this.executeRun(task, run, targets[i], out).finally(() => {
             pending--;
             if (pending === 0) {
               out.next({ data: JSON.stringify({ type: 'done' }) });
@@ -165,7 +172,9 @@ export class TasksService {
           });
         });
       } catch (err: any) {
-        out.next({ data: JSON.stringify({ type: 'error', error: err.message }) });
+        out.next({
+          data: JSON.stringify({ type: 'error', error: err.message }),
+        });
         out.complete();
       }
     })();
@@ -181,10 +190,19 @@ export class TasksService {
   ) {
     // Route to AgentService for agentic mode
     if (task.mode === 'agentic') {
-      const provider = await this.prisma.provider.findUnique({ where: { id: target.providerId } });
+      const provider = await this.prisma.provider.findUnique({
+        where: { id: target.providerId },
+      });
       if (!provider) throw new Error(`Provider ${target.providerId} not found`);
       const apiKey = this.encryption.decrypt(provider.apiKey);
-      return this.agentService.runAgent(task, run, target, provider, apiKey, out);
+      return this.agentService.runAgent(
+        task,
+        run,
+        target,
+        provider,
+        apiKey,
+        out,
+      );
     }
 
     const startTime = Date.now();
@@ -193,14 +211,16 @@ export class TasksService {
     let accumulatedThinking = '';
 
     try {
-      const provider = await this.prisma.provider.findUnique({ where: { id: target.providerId } });
+      const provider = await this.prisma.provider.findUnique({
+        where: { id: target.providerId },
+      });
       if (!provider) throw new Error(`Provider ${target.providerId} not found`);
 
       const adapter = this.adapterFactory.get(provider.adapterType);
       const apiKey = this.encryption.decrypt(provider.apiKey);
 
       await new Promise<void>((resolve, reject) => {
-        const sub = adapter
+        adapter
           .streamChat({
             apiBaseUrl: provider.apiBaseUrl,
             apiKey,
@@ -221,30 +241,43 @@ export class TasksService {
                 if (delta.kind === 'thinking') {
                   accumulatedThinking += delta.content;
                   out.next({
-                    data: JSON.stringify({ type: 'thinking', runId: run.id, content: delta.content }),
+                    data: JSON.stringify({
+                      type: 'thinking',
+                      runId: run.id,
+                      content: delta.content,
+                    }),
                   });
                 } else {
                   accumulated += delta.content;
                   out.next({
-                    data: JSON.stringify({ type: 'delta', runId: run.id, content: delta.content }),
+                    data: JSON.stringify({
+                      type: 'delta',
+                      runId: run.id,
+                      content: delta.content,
+                    }),
                   });
                 }
               } catch {
                 // Legacy plain-text fallback (shouldn't happen, but be safe)
                 accumulated += raw;
                 out.next({
-                  data: JSON.stringify({ type: 'delta', runId: run.id, content: raw }),
+                  data: JSON.stringify({
+                    type: 'delta',
+                    runId: run.id,
+                    content: raw,
+                  }),
                 });
               }
             },
-            error: (err) => reject(err),
+            error: (err) => reject(err as Error),
             complete: () => resolve(),
           });
       });
 
       const completedAt = new Date();
       const totalMs = Date.now() - startTime;
-      const latencyMs = firstTokenTime !== null ? firstTokenTime - startTime : null;
+      const latencyMs =
+        firstTokenTime !== null ? firstTokenTime - startTime : null;
 
       await this.prisma.taskRun.update({
         where: { id: run.id },
@@ -280,7 +313,11 @@ export class TasksService {
         },
       });
       out.next({
-        data: JSON.stringify({ type: 'error', runId: run.id, error: err.message }),
+        data: JSON.stringify({
+          type: 'error',
+          runId: run.id,
+          error: err.message,
+        }),
       });
     }
   }

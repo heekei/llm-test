@@ -1,5 +1,12 @@
 import {
-  Controller, Get, Post, Patch, Delete, Body, Param, Res,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Res,
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { TasksService } from './tasks.service';
@@ -37,24 +44,22 @@ export class TasksController {
 
   // POST + SSE: manually write SSE-format chunks to support a request body
   @Post(':id/run')
-  run(
-    @Param('id') id: string,
-    @Body() dto: RunTaskDto,
-    @Res() res: Response,
-  ) {
+  run(@Param('id') id: string, @Body() dto: RunTaskDto, @Res() res: Response) {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no');
     res.flushHeaders();
 
-    const observable = this.tasksService.runTaskStream(id, dto.targets);
-    const sub = observable.subscribe({
+    const subscription = this.tasksService.runTaskStream(id, dto.targets);
+    const sub = subscription.subscribe({
       next: (event) => {
         res.write(`data: ${event.data}\n\n`);
       },
       error: (err) => {
-        res.write(`data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`);
+        res.write(
+          `data: ${JSON.stringify({ type: 'error', error: err.message })}\n\n`,
+        );
         res.end();
       },
       complete: () => {

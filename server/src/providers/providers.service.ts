@@ -11,7 +11,9 @@ export class ProvidersService {
   ) {}
 
   async findAll() {
-    const providers = await this.prisma.provider.findMany({ orderBy: { createdAt: 'desc' } });
+    const providers = await this.prisma.provider.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
     return providers.map((p) => ({
       ...p,
       apiKey: this.encryption.maskApiKey(p.apiKey),

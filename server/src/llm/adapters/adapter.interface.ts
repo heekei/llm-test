@@ -45,7 +45,10 @@ export interface ContentBlockToolResult {
   is_error?: boolean;
 }
 
-export type ContentBlock = ContentBlockText | ContentBlockToolUse | ContentBlockToolResult;
+export type ContentBlock =
+  | ContentBlockText
+  | ContentBlockToolUse
+  | ContentBlockToolResult;
 
 /** A single message in an agentic conversation */
 export interface ConversationMessage {

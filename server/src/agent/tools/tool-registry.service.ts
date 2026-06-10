@@ -1,7 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ToolDefinition } from '../../llm/adapters/adapter.interface';
 import { ToolHandler } from './tool.types';
-import { bashTool, pythonTool, readFileTool, writeFileTool, webRequestTool } from './builtin-tools';
+import {
+  bashTool,
+  pythonTool,
+  readFileTool,
+  writeFileTool,
+  webRequestTool,
+} from './builtin-tools';
 
 @Injectable()
 export class ToolRegistryService {
@@ -39,7 +45,7 @@ export class ToolRegistryService {
   }
 
   getDefaults(): ToolDefinition[] {
-    return Array.from(this.builtins.values()).map(h => h.definition);
+    return Array.from(this.builtins.values()).map((h) => h.definition);
   }
 
   /**
@@ -48,7 +54,9 @@ export class ToolRegistryService {
   getHandler(name: string): ToolHandler {
     const handler = this.builtins.get(name);
     if (!handler) {
-      throw new Error(`Unknown tool: ${name}. Available: ${Array.from(this.builtins.keys()).join(', ')}`);
+      throw new Error(
+        `Unknown tool: ${name}. Available: ${Array.from(this.builtins.keys()).join(', ')}`,
+      );
     }
     return handler;
   }

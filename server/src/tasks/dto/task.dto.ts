@@ -1,4 +1,13 @@
-import { IsString, IsOptional, IsNumber, Min, Max, IsArray, ValidateNested, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  Min,
+  Max,
+  IsArray,
+  ValidateNested,
+  IsIn,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class DefaultTargetInput {

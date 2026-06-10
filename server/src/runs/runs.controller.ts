@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Query,
+} from '@nestjs/common';
 import { RunsService } from './runs.service';
 import { ScoreRunDto } from './dto/score-run.dto';
 import { AiScoreRequestDto } from './dto/ai-score.dto';
@@ -39,13 +48,13 @@ export class RunsController {
   }
 
   @Post('runs/:id/ai-score')
-  async aiScore(@Param('id') id: string, @Body() dto: AiScoreRequestDto) {
+  aiScore(@Param('id') id: string, @Body() dto: AiScoreRequestDto) {
     if (scoringRuns.has(id)) {
       return { processing: true };
     }
 
     scoringRuns.add(id);
-    this.runsService.aiScoreBackground(id, dto).finally(() => {
+    void this.runsService.aiScoreBackground(id, dto).finally(() => {
       scoringRuns.delete(id);
     });
 
