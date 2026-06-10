@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { reactive, ref } from 'vue';
+import type { AgentTraceStep } from '../types';
 
 export interface RunPanel {
   key: string;
@@ -17,6 +18,9 @@ export interface RunPanel {
   aiScores?: any[] | null;
   savingScore?: boolean;
   scoreError?: string;
+  // Agentic fields
+  agentTrace: AgentTraceStep[];
+  currentIteration: number;
 }
 
 export interface ActiveRun {
@@ -44,6 +48,8 @@ export const useRunStore = defineStore('run', () => {
         status: 'pending',
         content: '',
         thinkingContent: '',
+        agentTrace: [],
+        currentIteration: 0,
       };
     }
     activeRuns[taskId] = { taskId, panels };
@@ -154,6 +160,32 @@ export const useRunStore = defineStore('run', () => {
     return isStreaming.value;
   }
 
+  // ---- Agentic evaluation methods ----
+
+  function appendAgentTrace(taskId: string, runId: string, step: AgentTraceStep) {
+    const run = activeRuns[taskId];
+    if (!run) return;
+    for (const key in run.panels) {
+      const panel = run.panels[key];
+      if (panel.runId === runId) {
+        panel.agentTrace.push(step);
+        break;
+      }
+    }
+  }
+
+  function setAgentIteration(taskId: string, runId: string, iteration: number) {
+    const run = activeRuns[taskId];
+    if (!run) return;
+    for (const key in run.panels) {
+      const panel = run.panels[key];
+      if (panel.runId === runId) {
+        panel.currentIteration = iteration;
+        break;
+      }
+    }
+  }
+
   return {
     activeRuns,
     isStreaming,
@@ -168,5 +200,7 @@ export const useRunStore = defineStore('run', () => {
     finishRun,
     clearRun,
     isTaskRunning,
+    appendAgentTrace,
+    setAgentIteration,
   };
 });

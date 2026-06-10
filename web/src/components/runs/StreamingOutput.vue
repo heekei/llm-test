@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { marked } from 'marked';
+import type { AgentTraceStep } from '../../types';
+import AgentTrace from './AgentTrace.vue';
 
 const props = defineProps<{
   runId: string;
@@ -11,6 +13,8 @@ const props = defineProps<{
   status: 'pending' | 'running' | 'completed' | 'error';
   latencyMs?: number | null;
   error?: string | null;
+  agentTrace?: AgentTraceStep[];
+  currentIteration?: number;
 }>();
 
 const thinkingExpanded = ref(true);
@@ -93,8 +97,17 @@ marked.setOptions({
         <div v-show="thinkingExpanded" class="thinking-body markdown-body" v-html="thinkingHtml"></div>
       </div>
 
+      <!-- Agent Trace -->
+      <div v-if="agentTrace && agentTrace.length > 0" class="agent-trace-section">
+        <AgentTrace
+          :trace="agentTrace"
+          :current-iteration="currentIteration || 0"
+          :live="status === 'running'"
+        />
+      </div>
+
       <div class="panel-body markdown-body" v-html="renderedMarkdown"></div>
-      <div v-if="status === 'running'" class="typing-indicator">
+      <div v-if="status === 'running' && (!agentTrace || agentTrace.length === 0)" class="typing-indicator">
         <span class="dot"></span>
         <span class="dot"></span>
         <span class="dot"></span>
@@ -302,5 +315,10 @@ marked.setOptions({
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ---- Agent trace section ---- */
+.agent-trace-section {
+  border-top: 1px solid var(--border);
 }
 </style>

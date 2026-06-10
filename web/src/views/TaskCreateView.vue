@@ -20,6 +20,11 @@ const form = reactive<CreateTaskInput>({
   maxTokens: 4096,
   thinkingBudgetTokens: undefined,
   reasoningEffort: undefined,
+  mode: 'simple',
+  tools: [],
+  maxIterations: undefined,
+  agentTimeoutSec: undefined,
+  dockerImage: undefined,
 });
 
 const targets = ref<RunTarget[]>([]);
@@ -59,6 +64,11 @@ async function handleSubmit() {
     if (form.maxTokens !== 4096) payload.maxTokens = form.maxTokens;
     if (form.thinkingBudgetTokens) payload.thinkingBudgetTokens = form.thinkingBudgetTokens;
     if (form.reasoningEffort) payload.reasoningEffort = form.reasoningEffort;
+    if (form.mode) payload.mode = form.mode;
+    if (form.tools && form.tools.length > 0) payload.tools = form.tools;
+    if (form.maxIterations) payload.maxIterations = form.maxIterations;
+    if (form.agentTimeoutSec) payload.agentTimeoutSec = form.agentTimeoutSec;
+    if (form.dockerImage) payload.dockerImage = form.dockerImage;
     if (targets.value.length > 0) payload.defaultTargets = targets.value;
 
     const task = await createTask(payload);
@@ -167,6 +177,54 @@ function goBack() {
           </el-select>
           <div class="form-hint">Controls reasoning depth for o1/o3/o4-mini models. Only useful with reasoning models.</div>
         </el-form-item>
+
+        <el-divider />
+        <h3>Agentic Mode</h3>
+        <p class="section-desc">Let the LLM use tools (bash, Python, file I/O, web) inside a Docker sandbox with a ReAct loop.</p>
+
+        <el-form-item label="Mode">
+          <el-switch
+            v-model="form.mode"
+            active-value="agentic"
+            inactive-value="simple"
+            active-text="Agentic"
+            inactive-text="Simple"
+          />
+          <div class="form-hint">Simple: one-shot prompt → response. Agentic: multi-turn tool-using agent.</div>
+        </el-form-item>
+
+        <template v-if="form.mode === 'agentic'">
+          <el-form-item label="Enabled Tools">
+            <el-checkbox-group v-model="form.tools">
+              <el-checkbox label="bash">Bash</el-checkbox>
+              <el-checkbox label="python">Python</el-checkbox>
+              <el-checkbox label="read_file">Read File</el-checkbox>
+              <el-checkbox label="write_file">Write File</el-checkbox>
+              <el-checkbox label="web_request">Web Request</el-checkbox>
+            </el-checkbox-group>
+            <div class="form-hint">Select which tools the agent can use. Leave empty for all defaults.</div>
+          </el-form-item>
+
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="Max Iterations">
+                <el-input-number v-model="form.maxIterations" :min="1" :max="100" style="width: 100%" />
+                <div class="form-hint">Limit ReAct loop iterations (default 20)</div>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="Timeout (seconds)">
+                <el-input-number v-model="form.agentTimeoutSec" :min="10" :max="3600" style="width: 100%" />
+                <div class="form-hint">Total agent run timeout (default 300s)</div>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-form-item label="Docker Image">
+            <el-input v-model="form.dockerImage" placeholder="agent-sandbox:latest (leave blank for default)" />
+            <div class="form-hint">Override the sandbox Docker image. Must be available on the Docker host.</div>
+          </el-form-item>
+        </template>
 
         <el-divider />
         <h3>Model Targets (optional)</h3>

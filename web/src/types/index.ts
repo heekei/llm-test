@@ -21,6 +21,24 @@ export interface ModelInfo {
   };
 }
 
+export interface AgentTraceStep {
+  iteration: number;
+  kind: 'llm_text' | 'tool_call' | 'tool_result';
+  content: string;
+  toolName?: string;
+  toolCallId?: string;
+  toolInput?: object;
+  isError?: boolean;
+  timestamp: string;
+}
+
+export interface AgentStats {
+  iterations: number;
+  toolCalls: number;
+  totalTimeMs?: number;
+  toolExecTimeMs?: number;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -31,6 +49,11 @@ export interface Task {
   maxTokens: number;
   thinkingBudgetTokens?: number | null;
   reasoningEffort?: string | null;
+  mode?: 'simple' | 'agentic' | null;
+  tools?: string[] | null;
+  maxIterations?: number | null;
+  agentTimeoutSec?: number | null;
+  dockerImage?: string | null;
   defaultTargets?: RunTarget[] | null;
   createdAt: string;
   updatedAt: string;
@@ -69,6 +92,9 @@ export interface TaskRun {
   score?: number | null;
   scoreNote?: string | null;
   aiScores?: AiScoreResult[] | null;
+  agentTrace?: AgentTraceStep[] | null;
+  agentStats?: AgentStats | null;
+  sandboxId?: string | null;
   startedAt?: string | null;
   completedAt?: string | null;
   createdAt: string;
@@ -106,5 +132,10 @@ export interface CreateTaskInput {
   maxTokens?: number;
   thinkingBudgetTokens?: number;
   reasoningEffort?: string;
+  mode?: 'simple' | 'agentic';
+  tools?: string[];
+  maxIterations?: number;
+  agentTimeoutSec?: number;
+  dockerImage?: string;
   defaultTargets?: RunTarget[];
 }

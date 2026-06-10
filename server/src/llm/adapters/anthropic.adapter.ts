@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
-import { LlmAdapter, StreamChatParams } from './adapter.interface';
+import { LlmAdapter, StreamChatParams, AgentChatParams, ContentBlock, ConversationMessage } from './adapter.interface';
 
 /**
  * Provider suffix paths commonly used for Anthropic-protocol endpoints.
@@ -320,5 +320,232 @@ export class AnthropicAdapter implements LlmAdapter {
     if (parsed.choices?.[0]?.delta?.content != null) return parsed.choices[0].delta.content;
     if (Array.isArray(parsed.content)) return parsed.content.map((c: any) => c.text ?? '').join('');
     return null;
+  }
+
+  // ---- Agentic methods ----
+
+  async agentTurn(params: AgentChatParams): Promise<ContentBlock[]> {
+    const body = this.buildAgentBody(params, false);
+    const base = this.normalizeBaseUrl(params.apiBaseUrl);
+    const url = `${base}/v1/messages`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': params.apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`API error: ${response.status} ${errText}`);
+    }
+
+    const data = await response.json();
+    return this.parseAnthropicContent(data.content || []);
+  }
+
+  streamAgentTurn(params: AgentChatParams): Observable<string> {
+    const subject = new Subject<string>();
+    this.doStreamAgentTurn(params, subject);
+    return subject.asObservable();
+  }
+
+  /**
+   * Build request body for agentic turns.
+   * Maps ConversationMessage[] to Anthropic messages format with tools.
+   */
+  private buildAgentBody(params: AgentChatParams, stream: boolean): any {
+    const body: any = {
+      model: params.modelId,
+      max_tokens: params.maxTokens,
+      temperature: params.temperature,
+      stream,
+      messages: this.mapMessagesToAnthropic(params.messages),
+    };
+
+    if (params.systemPrompt) {
+      body.system = params.systemPrompt;
+    }
+
+    // Map tool definitions to Anthropic tools format
+    if (params.tools && params.tools.length > 0) {
+      body.tools = params.tools.map(t => ({
+        name: t.name,
+        description: t.description,
+        input_schema: t.inputSchema,
+      }));
+    }
+
+    // Extended thinking
+    if (params.thinkingBudgetTokens && params.thinkingBudgetTokens >= 1024) {
+      body.thinking = {
+        type: 'enabled',
+        budget_tokens: Math.min(params.thinkingBudgetTokens, params.maxTokens),
+      };
+      if (body.thinking.budget_tokens >= params.maxTokens) {
+        body.max_tokens = body.thinking.budget_tokens + 1024;
+      }
+    }
+
+    return body;
+  }
+
+  private mapMessagesToAnthropic(messages: ConversationMessage[]): any[] {
+    return messages.map(msg => {
+      const content: any[] = [];
+      for (const block of msg.content) {
+        if (block.type === 'text') {
+          content.push({ type: 'text', text: block.text });
+        } else if (block.type === 'tool_use') {
+          content.push({
+            type: 'tool_use',
+            id: block.id,
+            name: block.name,
+            input: block.input,
+          });
+        } else if (block.type === 'tool_result') {
+          content.push({
+            type: 'tool_result',
+            tool_use_id: block.tool_use_id,
+            content: block.content,
+            is_error: block.is_error,
+          });
+        }
+      }
+      return { role: msg.role, content };
+    });
+  }
+
+  private parseAnthropicContent(rawContent: any[]): ContentBlock[] {
+    const blocks: ContentBlock[] = [];
+    for (const c of rawContent) {
+      if (c.type === 'text') {
+        blocks.push({ type: 'text', text: c.text });
+      } else if (c.type === 'tool_use') {
+        blocks.push({
+          type: 'tool_use',
+          id: c.id,
+          name: c.name,
+          input: c.input || {},
+        });
+      }
+    }
+    return blocks;
+  }
+
+  private async doStreamAgentTurn(params: AgentChatParams, subject: Subject<string>) {
+    try {
+      const body = this.buildAgentBody(params, true);
+      const base = this.normalizeBaseUrl(params.apiBaseUrl);
+      const url = `${base}/v1/messages`;
+
+      subject.next(JSON.stringify({ kind: 'message_start' }));
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': params.apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`API error: ${response.status} ${errText}`);
+      }
+
+      const reader = response.body!.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      // Track tool_use accumulation across content blocks
+      let currentToolUse: { id?: string; name?: string; inputJson: string } | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        buffer = buffer.replace(/\r\n/g, '\n');
+        const lines = buffer.split('\n');
+        buffer = lines.pop()!;
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          const dataPrefix = trimmed.startsWith('data: ') ? 'data: ' : (trimmed.startsWith('data:') ? 'data:' : '');
+          if (!dataPrefix) continue;
+          const data = trimmed.slice(dataPrefix.length).trim();
+          if (!data || data === '[DONE]') continue;
+
+          try {
+            const parsed = JSON.parse(data);
+
+            // Handle content_block_start for tool_use
+            if (parsed.type === 'content_block_start') {
+              if (parsed.content_block?.type === 'tool_use') {
+                currentToolUse = {
+                  id: parsed.content_block.id,
+                  name: parsed.content_block.name,
+                  inputJson: '',
+                };
+              }
+              // Also handle text content_block_start
+              if (parsed.content_block?.text != null && parsed.content_block.type === 'text') {
+                subject.next(JSON.stringify({ kind: 'text', content: parsed.content_block.text }));
+              }
+            }
+
+            // Handle content_block_delta
+            if (parsed.type === 'content_block_delta') {
+              // Thinking delta
+              if (parsed.delta?.thinking) {
+                subject.next(JSON.stringify({ kind: 'thinking', content: parsed.delta.thinking }));
+              }
+              // Text delta
+              if (parsed.delta?.text != null) {
+                subject.next(JSON.stringify({ kind: 'text', content: parsed.delta.text }));
+              }
+              // Tool input JSON delta
+              if (parsed.delta?.partial_json && currentToolUse) {
+                currentToolUse.inputJson += parsed.delta.partial_json;
+              }
+            }
+
+            // Handle content_block_stop — emit completed tool_use
+            if (parsed.type === 'content_block_stop') {
+              if (currentToolUse && currentToolUse.id && currentToolUse.name) {
+                let input: object = {};
+                try { input = JSON.parse(currentToolUse.inputJson); } catch { /* partial */ }
+                subject.next(JSON.stringify({
+                  kind: 'tool_use',
+                  id: currentToolUse.id,
+                  name: currentToolUse.name,
+                  input,
+                }));
+              }
+              currentToolUse = null;
+            }
+
+            if (parsed.type === 'message_stop' || parsed.type === 'message_end') {
+              subject.next(JSON.stringify({ kind: 'message_stop' }));
+              subject.complete();
+              return;
+            }
+          } catch { /* skip */ }
+        }
+      }
+      subject.next(JSON.stringify({ kind: 'message_stop' }));
+      subject.complete();
+    } catch (error) {
+      Logger.error('Anthropic streamAgentTurn error:', error);
+      subject.error(error);
+    }
   }
 }

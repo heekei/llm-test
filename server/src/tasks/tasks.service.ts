@@ -1,10 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { Observable, Subject } from 'rxjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { EncryptionService } from '../common/encryption.service';
 import { AdapterFactory } from '../llm/factories/adapter.factory';
 import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
 import { RunTargetDto } from './dto/run-task.dto';
+import { AgentService } from '../agent/agent.service';
 
 interface SseEvent {
   data: string;
@@ -16,6 +17,7 @@ export class TasksService {
     private prisma: PrismaService,
     private encryption: EncryptionService,
     private adapterFactory: AdapterFactory,
+    private agentService: AgentService,
   ) {}
 
   async findAll() {
@@ -46,6 +48,10 @@ export class TasksService {
       data.defaultTargets = JSON.stringify(dto.defaultTargets);
     } else {
       delete data.defaultTargets;
+    }
+    // JSON-stringify tools array if present
+    if (data.tools !== undefined) {
+      data.tools = data.tools ? JSON.stringify(data.tools) : null;
     }
     return this.prisma.task.create({ data });
   }
@@ -80,7 +86,12 @@ export class TasksService {
 
   async update(id: string, dto: UpdateTaskDto) {
     await this.findOne(id);
-    return this.prisma.task.update({ where: { id }, data: dto });
+    const data: any = { ...dto };
+    // JSON-stringify tools array if present (SQLite text field)
+    if (dto.tools !== undefined) {
+      data.tools = dto.tools ? JSON.stringify(dto.tools) : null;
+    }
+    return this.prisma.task.update({ where: { id }, data });
   }
 
   async remove(id: string) {
@@ -153,6 +164,14 @@ export class TasksService {
     target: RunTargetDto,
     out: Subject<SseEvent>,
   ) {
+    // Route to AgentService for agentic mode
+    if (task.mode === 'agentic') {
+      const provider = await this.prisma.provider.findUnique({ where: { id: target.providerId } });
+      if (!provider) throw new Error(`Provider ${target.providerId} not found`);
+      const apiKey = this.encryption.decrypt(provider.apiKey);
+      return this.agentService.runAgent(task, run, target, provider, apiKey, out);
+    }
+
     const startTime = Date.now();
     let firstTokenTime: number | null = null;
     let accumulated = '';

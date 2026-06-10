@@ -91,6 +91,30 @@ const { startStream, stopStream } = useSse({
     runStore.finishRun(taskId.value);
     loadTask();
   },
+  onAgentIteration: (runId, iteration) => {
+    runStore.setAgentIteration(taskId.value, runId, iteration);
+  },
+  onToolCall: (runId, data) => {
+    runStore.appendAgentTrace(taskId.value, runId, {
+      iteration: 0, // filled by agent_iteration separately
+      kind: 'tool_call',
+      content: '',
+      toolName: data.toolName,
+      toolCallId: data.toolCallId,
+      toolInput: data.input,
+      timestamp: new Date().toISOString(),
+    });
+  },
+  onToolResult: (runId, data) => {
+    runStore.appendAgentTrace(taskId.value, runId, {
+      iteration: 0,
+      kind: 'tool_result',
+      content: data.result,
+      toolCallId: data.toolCallId,
+      isError: data.isError,
+      timestamp: new Date().toISOString(),
+    });
+  },
 });
 
 const isStreaming = computed(() => runStore.isStreaming);

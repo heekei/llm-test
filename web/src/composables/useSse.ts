@@ -33,13 +33,38 @@ export interface SseDonePayload {
   type: 'done';
 }
 
+// ---- NEW: Agentic evaluation event types ----
+export interface SseAgentIterationPayload {
+  type: 'agent_iteration';
+  runId: string;
+  iteration: number;
+}
+export interface SseToolCallPayload {
+  type: 'tool_call';
+  runId: string;
+  toolCallId: string;
+  toolName: string;
+  input: object;
+}
+export interface SseToolResultPayload {
+  type: 'tool_result';
+  runId: string;
+  toolCallId: string;
+  result: string;
+  isError: boolean;
+  latencyMs: number;
+}
+
 export type SseEvent =
   | SseDeltaPayload
   | SseThinkingPayload
   | SseCreatedPayload
   | SseCompletePayload
   | SseErrorPayload
-  | SseDonePayload;
+  | SseDonePayload
+  | SseAgentIterationPayload
+  | SseToolCallPayload
+  | SseToolResultPayload;
 
 export interface UseSseOptions {
   onCreated?: (runId: string, providerId: string, modelId: string) => void;
@@ -48,6 +73,9 @@ export interface UseSseOptions {
   onComplete?: (runId: string, data: SseCompletePayload) => void;
   onError?: (runId: string | undefined, error: string) => void;
   onDone?: () => void;
+  onAgentIteration?: (runId: string, iteration: number) => void;
+  onToolCall?: (runId: string, data: SseToolCallPayload) => void;
+  onToolResult?: (runId: string, data: SseToolResultPayload) => void;
 }
 
 export function useSse(opts: UseSseOptions = {}) {
@@ -154,7 +182,16 @@ export function useSse(opts: UseSseOptions = {}) {
         opts.onError?.(evt.runId, evt.error);
         break;
       case 'done':
-        // onDone called in finally block; but call here too in case stream stays open
+        // onDone called in finally block
+        break;
+      case 'agent_iteration':
+        opts.onAgentIteration?.(evt.runId, evt.iteration);
+        break;
+      case 'tool_call':
+        opts.onToolCall?.(evt.runId, evt);
+        break;
+      case 'tool_result':
+        opts.onToolResult?.(evt.runId, evt);
         break;
     }
   }

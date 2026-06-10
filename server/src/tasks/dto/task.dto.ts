@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, Min, Max, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsOptional, IsNumber, Min, Max, IsArray, ValidateNested, IsIn } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class DefaultTargetInput {
@@ -48,6 +48,32 @@ export class CreateTaskDto {
   reasoningEffort?: string;
 
   @IsOptional()
+  @IsString()
+  @IsIn(['simple', 'agentic'])
+  mode?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tools?: string[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  maxIterations?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(10)
+  @Max(3600)
+  agentTimeoutSec?: number;
+
+  @IsOptional()
+  @IsString()
+  dockerImage?: string;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => DefaultTargetInput)
@@ -86,4 +112,30 @@ export class UpdateTaskDto {
   @IsOptional()
   @IsString()
   reasoningEffort?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['simple', 'agentic'])
+  mode?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tools?: string[];
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  @Max(100)
+  maxIterations?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(10)
+  @Max(3600)
+  agentTimeoutSec?: number;
+
+  @IsOptional()
+  @IsString()
+  dockerImage?: string;
 }

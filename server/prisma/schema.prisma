@@ -41,6 +41,11 @@ model Task {
   maxTokens            Int      @default(4096)
   thinkingBudgetTokens Int?     // Anthropic-style extended thinking budget (min 1024)
   reasoningEffort      String?  // OpenAI o-series: "low" | "medium" | "high"
+  mode                 String   @default("simple") // "simple" | "agentic"
+  tools                String?  // JSON array of tool IDs enabled for agentic runs
+  maxIterations        Int?     // Max ReAct loop iterations (default 20)
+  agentTimeoutSec      Int?     // Total agent run timeout in seconds (default 300)
+  dockerImage          String?  // Override Docker image for sandbox
   defaultTargets       String?  // JSON array of { providerId, providerName, modelId }
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -64,6 +69,9 @@ model TaskRun {
   score          Int?
   scoreNote      String?
   aiScores       String?   // JSON: [{ dimension, score, maxScore, weight, reasoning, judgeProviderId, judgeModelId }]
+  agentTrace     String?   // JSON: AgentTraceStep[]
+  agentStats     String?   // JSON: AgentStats
+  sandboxId      String?   // Docker container ID for cleanup
   startedAt      DateTime?
   completedAt    DateTime?
   createdAt      DateTime  @default(now())
