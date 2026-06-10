@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router';
-import { Monitor, Collection, Clock, DataAnalysis } from '@element-plus/icons-vue';
+import { Monitor, Collection, Clock } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import LangSwitch from './LangSwitch.vue';
 
@@ -32,10 +32,6 @@ const { t } = useI18n();
           <el-menu-item index="/history">
             <el-icon><Clock /></el-icon>
             <span>{{ t('nav.history') }}</span>
-          </el-menu-item>
-          <el-menu-item index="/compare">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>{{ t('nav.compare') }}</span>
           </el-menu-item>
         </el-menu>
         <div class="sidebar-footer">

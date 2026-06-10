@@ -50,15 +50,10 @@ const router = createRouter({
           component: () => import('../views/HistoryView.vue'),
         },
         {
-          path: 'compare/:taskId?',
+          path: 'compare/:taskId',
           name: 'compare',
           component: () => import('../views/CompareView.vue'),
           props: true,
-          beforeEnter: (to: { params: { taskId?: string } }) => {
-            if (!to.params.taskId) {
-              return { name: 'tasks' };
-            }
-          },
         },
       ],
     },
