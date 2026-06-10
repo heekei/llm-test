@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "description": "LLM Test Platform — Web Frontend (Vue 3 + Element Plus + Vite)",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",

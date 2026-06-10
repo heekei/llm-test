@@ -1,6 +1,6 @@
 {
   "name": "llm-test",
-  "private": true,
+  "description": "A self-hosted web platform for comparing LLM performance across multiple models and providers",
   "workspaces": ["server", "web"],
   "scripts": {
     "dev:server": "npm run start:dev -w server",

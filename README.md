@@ -1,193 +1,181 @@
 # LLM Test Platform
 
-模型评测 Web 平台，用于测试不同 LLM 模型在相同任务场景下的表现。
+A self-hosted web platform for comparing LLM performance across multiple models and providers. Define evaluation tasks, run them against different models, and get side-by-side comparisons with AI-powered scoring.
 
-## 功能特性
+## Features
 
-- **供应商管理**：添加模型供应商（API 地址、API Key、适配器类型）
-- **模型缓存**：一键从供应商 API 获取模型列表并持久化存储
-- **任务模板**：内置 15+ 精选评测模板，覆盖逻辑推理、代码编程、创意写作等场景
-- **任务管理**：创建评测任务（Prompt、System Prompt、参数配置）
-- **模型选择**：
-  - 从已缓存模型选择（按供应商分组）
-  - 手动输入模型 ID
-- **并行执行**：支持同时对多个模型运行相同任务
-- **实时流式输出**：SSE 流式显示每个模型的响应
-- **结果对比**：对比不同模型的输出、延迟、评分
-- **历史记录**：查看所有运行历史
+- **Multi-Provider Support** — OpenAI, Anthropic, and any OpenAI-compatible API
+- **Dual Evaluation Modes** — Simple chat completion + Agentic (ReAct loop with Docker sandbox)
+- **Real-time Streaming** — SSE-based streaming output with thinking/reasoning chain display
+- **AI Scoring** — Automatic 5-dimension scoring (accuracy, completeness, coherence, creativity, instruction-following) with multi-judge support
+- **Side-by-Side Compare** — Compare outputs from different models on the same task
+- **API Key Encryption** — AES-encrypted at rest, decrypted only at runtime
+- **15+ Built-in Templates** — Ready-to-use evaluation prompt templates
+- **Agent Trace** — Full tool-call trace and iteration history for agentic runs
 
-## 技术栈
+## Tech Stack
 
-**后端**
-- NestJS + TypeScript
-- Prisma 7 (SQLite)
-- RxJS (流式处理)
-- OpenAI / Anthropic API 适配器
+| Layer | Technology |
+|-------|-----------|
+| Backend | NestJS 11 + TypeScript |
+| Database | SQLite via Prisma 7 + libSQL |
+| Frontend | Vue 3 + Vite + Element Plus |
+| State | Pinia |
+| Runtime | Node.js 18+ |
 
-**前端**
-- Vue 3 + TypeScript + Vite
-- Vue Router + Pinia
-- Axios (HTTP 客户端)
-- Marked (Markdown 渲染)
+## Screenshots
 
-## 快速开始
+> TODO: Add screenshots here
 
-### 1. 安装依赖
+- Task list with templates
+- Streaming evaluation output
+- Side-by-side comparison view
+- AI scoring panel
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm 9+
+- Docker (optional, for agentic sandbox mode)
+
+### Setup
 
 ```bash
+# Clone and install
+git clone https://github.com/heekei/llm-test.git
+cd llm-test
 npm install
-```
 
-### 2. 配置环境变量
-
-后端配置：
-
-```bash
+# Configure
 cd server
 cp .env.example .env
-# 编辑 .env，设置 ENCRYPTION_KEY（用于加密 API Key）
-```
+# Edit .env — set ENCRYPTION_KEY (generate with: openssl rand -hex 32)
 
-生成加密密钥：
-```bash
-openssl rand -hex 32
-```
-
-### 3. 初始化数据库
-
-```bash
-cd server
+# Initialize database
+cd ..
 npm run prisma:migrate
+npm run prisma:generate
 ```
 
-### 4. 启动服务
-
-**开发模式：**
+### Run
 
 ```bash
-# 终端 1: 启动后端 (http://localhost:3000)
-cd server
-npm run start:dev
+# Terminal 1: Backend (http://localhost:3000)
+npm run dev:server
 
-# 终端 2: 启动前端 (http://localhost:5173)
-cd web
-npm run dev
+# Terminal 2: Frontend (http://localhost:5173)
+npm run dev:web
 ```
 
-**生产模式：**
+### Add a Provider
 
-```bash
-# 构建
-npm run build
+1. Open http://localhost:5173/providers
+2. Click "Add Provider"
+3. Fill in: Name, API Base URL, API Key, Adapter Type (openai/anthropic)
+4. Click "Fetch Models" to pull available models from the API
 
-# 启动后端
-cd server
-npm run start:prod
+### Run Your First Evaluation
 
-# 前端静态文件在 web/dist，使用 nginx 或其他服务器托管
-```
+1. Go to http://localhost:5173/tasks
+2. Click "New Task" and pick a template or write your own prompt
+3. Open the task detail page, add target models, and hit "Run"
+4. Watch streaming results, then use AI Scoring for automated evaluation
 
-### 5. 访问应用
-
-打开浏览器访问：http://localhost:5173
-
-## 使用流程
-
-1. **添加供应商**
-   - 进入 "Providers" 页面
-   - 点击 "+ New Provider"
-   - 填写供应商信息（名称、API 地址、API Key、适配器类型）
-   - 示例：
-     - OpenAI: `https://api.openai.com/v1`
-     - Anthropic: `https://api.anthropic.com/v1`
-
-2. **获取模型列表**
-   - 在供应商列表中，点击每个供应商的 "Fetch Models" 按钮
-   - 系统会从供应商 API 查询可用模型并缓存到数据库
-   - 此操作只需执行一次，模型列表会持久保存
-
-3. **创建任务**
-   - 进入 "Tasks" 页面
-   - 点击 "+ New Task"
-   - **方式一：从模板创建**
-     - 点击 "📋 从模板创建" 按钮
-     - 浏览 15+ 内置评测模板，覆盖：
-       - 逻辑推理（25 匹马问题、鸡兔同笼、海盗分金币等）
-       - 代码编程（算法实现、Debug、系统设计）
-       - 创意写作（科幻短篇、产品文案）
-       - 知识问答（历史、科学）
-       - 指令遵循（结构化输出、角色扮演）
-       - 安全测试（拒绝有害请求、伦理推理）
-     - 点击模板自动填充表单
-   - **方式二：手动创建**
-     - 填写任务信息（标题、Prompt、可选的 System Prompt 和参数）
-   - 可选：选择模型目标（也可以稍后在任务详情页添加）
-   - 保存后进入任务详情页
-
-4. **运行任务**
-   - 在任务详情页选择模型：
-     - **从已缓存模型选择**：下拉列表显示所有已获取的模型（按供应商分组）
-     - **手动输入模型 ID**：如果列表中没有想要的模型，可以手动输入
-   - 可添加多个目标模型
-   - 点击 "Run" 开始执行
-   - 实时查看每个模型的流式输出
-
-5. **对比和评分**
-   - 运行完成后可对每个结果评分（1-5 星）
-   - 点击 "Compare" 查看所有运行结果的并排对比
-   - 在 "History" 页面查看所有历史记录
-
-## API 适配器
-
-当前支持的适配器：
-
-- **openai**: OpenAI API 兼容接口（OpenAI、Azure OpenAI、兼容服务）
-- **anthropic**: Anthropic Claude API
-
-适配器会自动处理：
-- 模型列表查询（支持 API 回退）
-- 流式输出解析
-- 错误处理
-
-## 开发
-
-```bash
-# 类型检查
-npm run typecheck
-
-# 代码格式化
-npm run format
-
-# 数据库迁移
-cd server
-npx prisma migrate dev
-
-# 生成 Prisma Client
-npx prisma generate
-```
-
-## 项目结构
+## Project Structure
 
 ```
 llm-test/
-├── server/          # NestJS 后端
-│   ├── prisma/      # 数据库 Schema 和迁移
+├── server/                 # NestJS backend
 │   ├── src/
-│   │   ├── llm/     # LLM 适配器
-│   │   ├── providers/ # 供应商模块
-│   │   ├── tasks/   # 任务模块
-│   │   └── runs/    # 运行记录模块
-│   └── ...
-├── web/             # Vue 3 前端
-│   ├── src/
-│   │   ├── api/     # API 客户端
-│   │   ├── components/ # Vue 组件
-│   │   ├── views/   # 页面视图
-│   │   └── ...
-│   └── ...
-└── package.json     # Workspace 根配置
+│   │   ├── agent/          # Agentic mode: tools, Docker sandbox, ReAct loop
+│   │   ├── common/         # EncryptionService (AES key encryption)
+│   │   ├── llm/            # Adapter pattern (OpenAI & Anthropic)
+│   │   ├── models/         # Fetch & cache model lists from providers
+│   │   ├── prisma/         # Database service
+│   │   ├── providers/      # Provider CRUD
+│   │   ├── runs/           # Execution, SSE streaming, scoring
+│   │   └── tasks/          # Task CRUD, templates
+│   └── prisma/             # Schema & migrations
+├── web/                    # Vue 3 frontend
+│   └── src/
+│       ├── api/            # HTTP client & API modules
+│       ├── components/     # Reusable Vue components
+│       ├── composables/    # SSE stream consumer
+│       ├── data/           # Built-in eval templates
+│       ├── router/         # Vue Router config
+│       ├── stores/         # Pinia state management
+│       └── views/          # Page-level components
+└── package.json            # npm workspaces root
+```
+
+## API Overview
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/providers` | List providers |
+| POST | `/api/providers` | Add provider |
+| GET | `/api/models/:providerId` | Fetch & cache models from provider |
+| GET | `/api/tasks` | List tasks |
+| POST | `/api/tasks` | Create task |
+| POST | `/api/tasks/:id/run` | Run task against targets (SSE) |
+| GET | `/api/runs` | List all runs |
+| PATCH | `/api/runs/:id/score` | Set manual score |
+| POST | `/api/runs/:id/ai-score` | Trigger AI scoring |
+| GET | `/api/tasks/:taskId/compare` | Get comparison data for a task |
+
+## Architecture
+
+### Evaluation Modes
+
+- **Simple** (`mode: "simple"`) — Single chat completion, streaming text output
+- **Agentic** (`mode: "agentic"`) — ReAct loop with tool execution in Docker sandbox
+  - Built-in tools: bash, python, read_file, write_file, web_request
+  - Full trace of every iteration, tool call, and result
+
+### SSE Streaming Flow
+
+```
+POST /api/tasks/:id/run
+  → creates TaskRun records
+  → GET /api/runs/stream/:runId (SSE)
+    → created → delta/thinking → complete/error → done
+```
+
+### AI Scoring
+
+Calls a judge LLM to score outputs across 5 weighted dimensions. Supports multiple judges per run. Scores stored as JSON array.
+
+### Encryption
+
+API keys encrypted with AES-256-CBC at rest. Key derived from `ENCRYPTION_KEY` environment variable. Decrypted only when making API calls.
+
+## Roadmap
+
+- [ ] Benchmark dataset support (pre-defined test sets)
+- [ ] Batch evaluation with concurrency control
+- [ ] Export results as CSV/JSON
+- [ ] User authentication & multi-tenancy
+- [ ] More built-in agents and tools
+- [ ] PostgreSQL support
+- [ ] Dark mode
+
+## Development
+
+See [server/README.md](server/README.md) and [web/README.md](web/README.md) for development guides.
+
+```bash
+# Type check
+npm run typecheck
+
+# Lint (server only)
+cd server && npm run lint
+
+# Database GUI
+npm run prisma:studio
 ```
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE) for details.
