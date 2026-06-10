@@ -103,8 +103,8 @@ export class DockerService {
 
     const stream = await exec.start({ Detach: false, Tty: false });
 
-    // Collect output with timeout
-    const result = await this.collectStream(stream, timeoutMs);
+    // Collect output with timeout — docker multiplexes stdout/stderr into one stream
+    const result = await this.collectDemuxStream(stream, timeoutMs);
 
     Logger.debug(`Docker: exec result exit=${result.exitCode} stdout=${result.stdout.slice(0, 100)}`);
     return result;
@@ -125,6 +125,67 @@ export class DockerService {
     }
   }
 
+  /**
+   * Collect demuxed Docker exec stream output.
+   * Docker multiplexes stdout and stderr into a single stream with an 8-byte header
+   * per frame: [stream_type(1)] [0x00 x3] [size(4 bytes big-endian)].
+   * stream_type: 1 = stdout, 2 = stderr.
+   */
+  private collectDemuxStream(
+    stream: Readable,
+    timeoutMs: number,
+  ): Promise<ExecResult> {
+    return new Promise((resolve, reject) => {
+      let stdout = '';
+      let stderr = '';
+      let buffer = Buffer.alloc(0);
+      let done = false;
+
+      const timer = setTimeout(() => {
+        if (!done) {
+          done = true;
+          try { stream.destroy(); } catch {}
+          resolve({ exitCode: -1, stdout, stderr: stderr + '\n[TIMEOUT]' });
+        }
+      }, timeoutMs);
+
+      stream.on('data', (chunk: Buffer) => {
+        buffer = Buffer.concat([buffer, chunk]);
+        // Parse multiplexed frames
+        while (buffer.length >= 8) {
+          const streamType = buffer[0];
+          const frameSize = buffer.readUInt32BE(4);
+          if (buffer.length < 8 + frameSize) break; // incomplete frame
+
+          const payload = buffer.subarray(8, 8 + frameSize).toString('utf-8');
+          if (streamType === 1) {
+            stdout += payload;
+          } else if (streamType === 2) {
+            stderr += payload;
+          }
+          buffer = buffer.subarray(8 + frameSize);
+        }
+      });
+
+      stream.on('end', () => {
+        if (!done) {
+          done = true;
+          clearTimeout(timer);
+          resolve({ exitCode: 0, stdout, stderr });
+        }
+      });
+
+      stream.on('error', (err) => {
+        if (!done) {
+          done = true;
+          clearTimeout(timer);
+          reject(err);
+        }
+      });
+    });
+  }
+
+  /* Kept for reference — use collectDemuxStream instead */
   private collectStream(
     stream: Readable,
     timeoutMs: number,

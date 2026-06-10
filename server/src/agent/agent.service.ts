@@ -9,6 +9,14 @@ import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs/promises';
 
+/** Strip ANSI escape codes and control characters from tool output */
+function sanitizeOutput(raw: string): string {
+  return raw
+    .replace(/\x1b\[[0-9;]*m/g, '')   // ANSI color/formatting codes
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '') // control chars (keep \n \t)
+    .trim();
+}
+
 interface AgentTraceStep {
   iteration: number;
   kind: 'llm_text' | 'tool_call' | 'tool_result';
@@ -163,9 +171,11 @@ export class AgentService {
             isError = true;
           }
 
-          const output = isError
-            ? (result.stderr || result.stdout || 'Unknown error')
-            : (result.stdout || '(no output)');
+          // Combine stdout + stderr for the complete tool result, sanitize control chars
+          const combined = [result.stdout, result.stderr].filter(Boolean).join('\n');
+          const output = sanitizeOutput(isError
+            ? (combined || 'Unknown error')
+            : (combined || '(no output)'));
           const latencyMs = Date.now() - t0;
 
           // Emit tool_result SSE

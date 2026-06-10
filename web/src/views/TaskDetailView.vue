@@ -11,6 +11,7 @@ import { useRunStore } from '../stores/runStore';
 import ModelSelector from '../components/tasks/ModelSelector.vue';
 import StreamingOutput from '../components/runs/StreamingOutput.vue';
 import AiScorePanel from '../components/runs/AiScorePanel.vue';
+import AgentTrace from '../components/runs/AgentTrace.vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 
 const route = useRoute();
@@ -39,6 +40,8 @@ interface RunPanel {
   aiScores?: AiScoreResult[] | null;
   savingScore?: boolean;
   scoreError?: string;
+  agentTrace?: any[];
+  currentIteration?: number;
 }
 
 const runPanels = reactive<Record<string, RunPanel>>({});
@@ -64,6 +67,8 @@ function syncFromStore() {
       lp.latencyMs = sp.latencyMs;
       lp.error = sp.error;
       lp.aiScores = sp.aiScores;
+      lp.agentTrace = sp.agentTrace;
+      lp.currentIteration = sp.currentIteration;
     }
   }
   for (const key of Object.keys(runPanels)) {
@@ -439,6 +444,8 @@ onUnmounted(() => {
               :status="panel.status"
               :latency-ms="panel.latencyMs"
               :error="panel.error"
+              :agent-trace="panel.agentTrace"
+              :current-iteration="panel.currentIteration"
             />
             <div v-if="panel.status === 'completed' && panel.runId" class="score-block">
               <el-card shadow="hover">
@@ -558,6 +565,15 @@ onUnmounted(() => {
               <pre v-if="r.output">{{ r.output }}</pre>
               <pre v-else-if="r.error" class="output-error">{{ r.error }}</pre>
               <p v-else class="output-empty">No output</p>
+
+              <!-- Agent Trace in past runs -->
+              <div v-if="r.agentTrace && r.agentTrace.length > 0" class="agent-trace-section">
+                <AgentTrace
+                  :trace="r.agentTrace"
+                  :current-iteration="0"
+                  :live="false"
+                />
+              </div>
 
               <div v-if="r.aiScores && r.aiScores.length > 0" class="ai-score-section">
                 <el-card

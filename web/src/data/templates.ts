@@ -1,17 +1,21 @@
 export interface TaskTemplate {
   title: string;
   description: string;
-  category: 'reasoning' | 'coding' | 'creative' | 'knowledge' | 'instruction' | 'safety';
+  category: 'reasoning' | 'coding' | 'creative' | 'knowledge' | 'instruction' | 'safety' | 'agentic';
   systemPrompt?: string;
   prompt: string;
   temperature?: number;
   maxTokens?: number;
   thinkingBudgetTokens?: number;
   reasoningEffort?: string;
+  mode?: 'simple' | 'agentic';
+  tools?: string[];
+  maxIterations?: number;
+  agentTimeoutSec?: number;
 }
 
 export const TASK_TEMPLATES: TaskTemplate[] = [
-  // Reasoning
+  // ==================== Reasoning ====================
   {
     title: '逻辑推理：25 匹马找最快的 3 匹',
     description: '经典算法问题，测试模型的逻辑推理和优化能力',
@@ -41,8 +45,27 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     maxTokens: 1500,
     reasoningEffort: 'medium',
   },
+  {
+    title: '复杂推理：海盗分金币',
+    description: '测试博弈论和逆向推理能力',
+    category: 'reasoning',
+    prompt: `5 个海盗抢到了 100 枚金币，要分赃。规则如下：
+1. 由最凶的海盗提出分配方案
+2. 所有海盗投票（包括提议者）
+3. 如果半数以上同意，就按方案分配
+4. 如果半数以上不同意，提议者被扔进海里喂鲨鱼，由次凶的海盗提出新方案
+5. 每个海盗都绝顶聪明且理性，优先保命，其次想得到更多金币
 
-  // Coding
+假设 5 个海盗按凶狠程度为 A > B > C > D > E，请问：
+1. A 应该提出什么分配方案？
+2. 请详细说明推理过程（从最后一个海盗推起）`,
+    temperature: 0.3,
+    maxTokens: 3000,
+    thinkingBudgetTokens: 3072,
+    reasoningEffort: 'high',
+  },
+
+  // ==================== Coding ====================
   {
     title: '算法实现：二分查找',
     description: '测试代码编写能力和算法理解',
@@ -94,7 +117,89 @@ print(reverse_string("hello"))  # 期望输出 "olleh"
     maxTokens: 3000,
   },
 
-  // Creative
+  // ==================== Agentic ====================
+  {
+    title: 'Agent：数据分析报告',
+    description: 'Agent模式：用 Python 分析数据并生成报告',
+    category: 'agentic',
+    mode: 'agentic',
+    tools: ['python', 'write_file', 'read_file', 'web_request'],
+    maxIterations: 15,
+    agentTimeoutSec: 300,
+    prompt: `请完成以下数据分析任务：
+
+1. 用 Python 生成一份模拟的销售数据（包含日期、产品、销售额、数量），保存为 /workspace/sales.csv
+2. 用 Python + pandas 读取数据，计算以下指标：
+   - 各产品的总销售额和总销售数量
+   - 按月汇总的销售趋势
+   - 销售额最高的前 3 个产品
+3. 将分析结果写入 /workspace/report.md，包含表格和文字分析
+4. 最后读取 report.md 并输出完整报告内容`,
+    temperature: 0.3,
+    maxTokens: 4096,
+  },
+  {
+    title: 'Agent：网页数据抓取与分析',
+    description: 'Agent模式：抓取网页数据并进行分析',
+    category: 'agentic',
+    mode: 'agentic',
+    tools: ['bash', 'python', 'write_file', 'read_file', 'web_request'],
+    maxIterations: 12,
+    agentTimeoutSec: 300,
+    prompt: `请完成以下网页数据抓取与分析任务：
+
+1. 使用 curl 抓取 https://httpbin.org/json 的 JSON 数据
+2. 使用 Python 解析返回的 JSON，提取所有字段
+3. 对数据做简单的统计分析（如字段类型、嵌套深度、数组长度等）
+4. 将分析结果保存为 /workspace/analysis.md
+5. 输出最终的 analysis.md 内容`,
+    temperature: 0.4,
+    maxTokens: 4096,
+  },
+  {
+    title: 'Agent：自动化代码仓库分析',
+    description: 'Agent模式：克隆仓库并分析代码结构',
+    category: 'agentic',
+    mode: 'agentic',
+    tools: ['bash', 'python', 'write_file', 'read_file'],
+    maxIterations: 20,
+    agentTimeoutSec: 600,
+    prompt: `请完成以下代码仓库分析任务：
+
+1. 用 git clone https://github.com/expressjs/express.git 将 Express.js 仓库克隆到 /workspace/express
+2. 使用 Python 分析仓库结构：遍历源代码目录，统计各类型文件数量（.js, .json, .md, .ts 等）
+3. 找到 package.json，提取项目名称、版本、主要依赖数量
+4. 生成一份 /workspace/repo-report.md，包含：
+   - 项目基本信息
+   - 文件类型分布饼图数据（文本描述）
+   - 核心模块列表（lib/ 子目录）
+5. 输出完整的 repo-report.md 内容`,
+    temperature: 0.3,
+    maxTokens: 4096,
+  },
+  {
+    title: 'Agent：数学题自动求解与验证',
+    description: 'Agent模式：用 Python 编程求解数学问题并验证',
+    category: 'agentic',
+    mode: 'agentic',
+    tools: ['python', 'bash', 'write_file', 'read_file'],
+    maxIterations: 10,
+    agentTimeoutSec: 180,
+    prompt: `请用 Python 编程求解以下问题并自行验证：
+
+问题：找出 1000 以内的所有质数，计算它们的和与平均值。
+
+要求：
+1. 编写 Python 代码到 /workspace/solve.py
+2. 运行代码并获取结果
+3. 编写另一个验证脚本到 /workspace/verify.py，用不同的算法（如埃拉托斯特尼筛法）验证结果
+4. 将最终结果和验证结论写入 /workspace/result.md
+5. 输出 result.md 的内容`,
+    temperature: 0.2,
+    maxTokens: 4096,
+  },
+
+  // ==================== Creative ====================
   {
     title: '创意写作：科幻短篇',
     description: '测试创造力和故事叙述能力',
@@ -116,7 +221,7 @@ print(reverse_string("hello"))  # 期望输出 "olleh"
     maxTokens: 1500,
   },
 
-  // Knowledge
+  // ==================== Knowledge ====================
   {
     title: '历史知识：世界大战时间线',
     description: '测试历史知识准确性和组织能力',
@@ -144,7 +249,7 @@ print(reverse_string("hello"))  # 期望输出 "olleh"
     reasoningEffort: 'medium',
   },
 
-  // Instruction Following
+  // ==================== Instruction Following ====================
   {
     title: '指令遵循：结构化输出',
     description: '测试指令理解和格式控制能力',
@@ -179,7 +284,7 @@ print(reverse_string("hello"))  # 期望输出 "olleh"
     maxTokens: 1500,
   },
 
-  // Safety & Ethics
+  // ==================== Safety & Ethics ====================
   {
     title: '安全测试：拒绝有害请求',
     description: '测试模型的安全边界和拒绝能力',
@@ -201,26 +306,5 @@ print(reverse_string("hello"))  # 期望输出 "olleh"
 4. 这个问题在 AI 自动驾驶场景下的现实意义`,
     temperature: 0.6,
     maxTokens: 2500,
-  },
-
-  // Multi-turn Reasoning
-  {
-    title: '复杂推理：海盗分金币',
-    description: '测试博弈论和逆向推理能力',
-    category: 'reasoning',
-    prompt: `5 个海盗抢到了 100 枚金币，要分赃。规则如下：
-1. 由最凶的海盗提出分配方案
-2. 所有海盗投票（包括提议者）
-3. 如果半数以上同意，就按方案分配
-4. 如果半数以上不同意，提议者被扔进海里喂鲨鱼，由次凶的海盗提出新方案
-5. 每个海盗都绝顶聪明且理性，优先保命，其次想得到更多金币
-
-假设 5 个海盗按凶狠程度为 A > B > C > D > E，请问：
-1. A 应该提出什么分配方案？
-2. 请详细说明推理过程（从最后一个海盗推起）`,
-    temperature: 0.3,
-    maxTokens: 3000,
-    thinkingBudgetTokens: 3072,
-    reasoningEffort: 'high',
   },
 ];

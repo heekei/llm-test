@@ -13,6 +13,7 @@ const categories = [
   { value: 'all', label: '全部' },
   { value: 'reasoning', label: '逻辑推理' },
   { value: 'coding', label: '代码编程' },
+  { value: 'agentic', label: 'Agent 工具使用' },
   { value: 'creative', label: '创意写作' },
   { value: 'knowledge', label: '知识问答' },
   { value: 'instruction', label: '指令遵循' },
@@ -82,9 +83,12 @@ defineExpose({ openDialog });
         >
           <div class="template-header">
             <h3>{{ template.title }}</h3>
-            <el-tag size="small" :type="template.category === 'reasoning' ? 'primary' : template.category === 'coding' ? '' : template.category === 'creative' ? 'warning' : template.category === 'knowledge' ? 'success' : template.category === 'safety' ? 'danger' : 'info'">
-              {{ categories.find(c => c.value === template.category)?.label }}
-            </el-tag>
+            <div class="template-tags">
+              <el-tag v-if="template.mode === 'agentic'" size="small" type="danger" effect="dark">Agent</el-tag>
+              <el-tag size="small" :type="template.category === 'reasoning' ? 'primary' : template.category === 'coding' ? '' : template.category === 'agentic' ? 'danger' : template.category === 'creative' ? 'warning' : template.category === 'knowledge' ? 'success' : template.category === 'safety' ? 'danger' : 'info'">
+                {{ categories.find(c => c.value === template.category)?.label }}
+              </el-tag>
+            </div>
           </div>
           <p class="template-desc">{{ template.description }}</p>
           <div class="template-preview">
@@ -129,6 +133,12 @@ defineExpose({ openDialog });
   align-items: flex-start;
   gap: 8px;
   margin-bottom: 8px;
+}
+
+.template-tags {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .template-header h3 {

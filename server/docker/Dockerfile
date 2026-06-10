@@ -1,20 +1,19 @@
-FROM ubuntu:24.04
+FROM alpine:3.21
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-venv \
-    nodejs npm \
-    curl ca-certificates jq git \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+# USTC mirror for apk
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories
 
-# Common Python packages for data/analysis tasks
-RUN pip3 install --break-system-packages \
-    numpy pandas requests httpx
+RUN apk add --no-cache \
+    python3 py3-pip \
+    py3-numpy py3-pandas \
+    bash curl jq git
 
-# Non-root user for security
-RUN useradd -m -s /bin/bash agent
+# Pure Python packages via pip (numpy/pandas already from apk)
+RUN pip3 install --break-system-packages --no-cache-dir \
+    requests httpx
+
+RUN adduser -D -s /bin/bash agent
 USER agent
 WORKDIR /workspace
 
-# Default: sleep (controlled by dockerode via Cmd override)
 CMD ["sleep", "300"]

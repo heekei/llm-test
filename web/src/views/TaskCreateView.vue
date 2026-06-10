@@ -40,6 +40,10 @@ function applyTemplate(template: TaskTemplate) {
   if (template.maxTokens !== undefined) form.maxTokens = template.maxTokens;
   if (template.thinkingBudgetTokens !== undefined) form.thinkingBudgetTokens = template.thinkingBudgetTokens;
   if (template.reasoningEffort !== undefined) form.reasoningEffort = template.reasoningEffort;
+  if (template.mode !== undefined) form.mode = template.mode;
+  if (template.tools !== undefined) form.tools = template.tools;
+  if (template.maxIterations !== undefined) form.maxIterations = template.maxIterations;
+  if (template.agentTimeoutSec !== undefined) form.agentTimeoutSec = template.agentTimeoutSec;
 }
 
 async function handleSubmit() {

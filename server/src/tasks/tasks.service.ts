@@ -74,14 +74,29 @@ export class TasksService {
   }
 
   private parseRunAiScores(run: any): any {
+    let result = { ...run };
     if (run.aiScores && typeof run.aiScores === 'string') {
       try {
-        return { ...run, aiScores: JSON.parse(run.aiScores) };
+        result = { ...result, aiScores: JSON.parse(run.aiScores) };
       } catch {
-        return { ...run, aiScores: null };
+        result = { ...result, aiScores: null };
       }
     }
-    return run;
+    if (run.agentTrace && typeof run.agentTrace === 'string') {
+      try {
+        result = { ...result, agentTrace: JSON.parse(run.agentTrace) };
+      } catch {
+        result = { ...result, agentTrace: null };
+      }
+    }
+    if (run.agentStats && typeof run.agentStats === 'string') {
+      try {
+        result = { ...result, agentStats: JSON.parse(run.agentStats) };
+      } catch {
+        result = { ...result, agentStats: null };
+      }
+    }
+    return result;
   }
 
   async update(id: string, dto: UpdateTaskDto) {

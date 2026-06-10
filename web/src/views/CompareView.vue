@@ -99,7 +99,7 @@ marked.setOptions({
       </el-empty>
 
       <template v-else>
-        <el-card class="summary-bar" shadow="never">
+        <div class="summary-bar">
           <div class="summary-item">
             <span class="summary-label">Task</span>
             <span class="summary-value">{{ taskTitle }}</span>
@@ -112,7 +112,7 @@ marked.setOptions({
             <span class="summary-label">Average Score</span>
             <span class="summary-value score">★ {{ averageScore.toFixed(1) }} / 5</span>
           </div>
-        </el-card>
+        </div>
 
         <div class="compare-grid">
           <el-card v-for="r in runs" :key="r.id" class="compare-col" shadow="hover">
@@ -196,15 +196,29 @@ marked.setOptions({
 
 .summary-bar {
   display: flex;
-  gap: 32px;
+  gap: 24px;
   align-items: center;
   flex-wrap: wrap;
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 .summary-item {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 8px 16px;
+  border-left: 2px solid var(--border);
+  min-width: 100px;
+  text-align: left;
+}
+
+.summary-item:first-child {
+  border-left: none;
+  padding-left: 0;
 }
 
 .summary-label {
@@ -216,7 +230,7 @@ marked.setOptions({
 }
 
 .summary-value {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-h);
 }

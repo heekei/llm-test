@@ -67,11 +67,26 @@ function safeParseJson(str: string): any[] | null {
 }
 
 function parseRunAiScores(run: any): any {
+  let result = { ...run };
   if (run.aiScores && typeof run.aiScores === 'string') {
     const parsed = safeParseJson(run.aiScores);
-    return { ...run, aiScores: parsed };
+    result = { ...result, aiScores: parsed };
   }
-  return run;
+  if (run.agentTrace && typeof run.agentTrace === 'string') {
+    try {
+      result = { ...result, agentTrace: JSON.parse(run.agentTrace) };
+    } catch {
+      result = { ...result, agentTrace: null };
+    }
+  }
+  if (run.agentStats && typeof run.agentStats === 'string') {
+    try {
+      result = { ...result, agentStats: JSON.parse(run.agentStats) };
+    } catch {
+      result = { ...result, agentStats: null };
+    }
+  }
+  return result;
 }
 
 @Injectable()
@@ -118,7 +133,14 @@ export class RunsService {
       include: { task: true },
     });
     if (!run) throw new NotFoundException(`运行 ${id} 未找到`);
-    if (!run.output) throw new Error('该运行没有输出内容可供评估');
+    if (!run.output) {
+      // Agentic runs may have agentTrace but no final text output — still scorable
+      if (run.agentTrace) {
+        run.output = '(Agentic run — see tool trace for full output)';
+        return this.aiScore(id, dto); // retry with synthetic output
+      }
+      throw new Error('该运行没有输出内容可供评估');
+    }
 
     const judgeProvider = await this.prisma.provider.findUnique({
       where: { id: dto.judgeProviderId },
@@ -131,8 +153,9 @@ export class RunsService {
     const userPrompt = `## 原始任务提示词\n${run.task.prompt}\n\n` +
       (run.task.systemPrompt ? `## 系统提示词\n${run.task.systemPrompt}\n\n` : '') +
       (run.thinkingOutput ? `## 模型思考过程\n${run.thinkingOutput}\n\n` : '') +
+      (run.agentTrace ? `## 模型工具调用痕迹\n${run.agentTrace}\n\n` : '') +
       `## 模型回答\n${run.output}\n\n` +
-      `请评估以上模型回答。如有思考过程，它展示了模型的推理链条，也请纳入评估考量。请严格按照系统提示词中指定的JSON格式返回结果。`;
+      `请评估以上模型回答。如有思考过程和工具调用痕迹，它们展示了模型的完整工作链条，也请纳入评估考量。请严格按照系统提示词中指定的JSON格式返回结果。`;
 
     const responseText = await adapter.chat({
       apiBaseUrl: judgeProvider.apiBaseUrl,
