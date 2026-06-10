@@ -1,5 +1,7 @@
 # Contributing
 
+[中文版](CONTRIBUTING.zh-CN.md)
+
 Thanks for your interest in contributing to the LLM Test Platform!
 
 ## Getting Started

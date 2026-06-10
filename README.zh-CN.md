@@ -1,5 +1,7 @@
 # LLM Test Platform
 
+[English](README.md) | [模板清单](TEMPLATES.md) | [贡献指南](CONTRIBUTING.zh-CN.md)
+
 一个自托管的 Web 平台，用于对比多个 LLM 模型在相同任务场景下的表现。定义评测任务，对不同模型运行测试，获取并排对比结果与 AI 自动评分。
 
 ## 特性

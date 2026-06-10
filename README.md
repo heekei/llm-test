@@ -1,5 +1,7 @@
 # LLM Test Platform
 
+[中文文档](README.zh-CN.md) | [Templates](TEMPLATES.md) | [Contributing](CONTRIBUTING.md)
+
 A self-hosted web platform for comparing LLM performance across multiple models and providers. Define evaluation tasks, run them against different models, and get side-by-side comparisons with AI-powered scoring.
 
 ## Features

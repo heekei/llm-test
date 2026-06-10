@@ -1,5 +1,7 @@
 # 贡献指南
 
+[English](CONTRIBUTING.md)
+
 感谢你对 LLM Test Platform 的关注！
 
 ## 起步
