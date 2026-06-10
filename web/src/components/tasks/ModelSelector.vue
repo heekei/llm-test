@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { ModelInfo, RunTarget } from '../../types';
 import { getAllModels } from '../../api/providers';
 import { ElMessage } from 'element-plus';
@@ -11,6 +12,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:targets', value: RunTarget[]): void;
 }>();
+
+const { t } = useI18n();
 
 const selectedModelId = ref<string>('');
 const manualModelId = ref<string>('');
@@ -68,7 +71,7 @@ function addTarget() {
   }
 
   if (props.targets.some(t => t.providerId === providerId && t.modelId === modelId)) {
-    ElMessage.warning('This model is already selected');
+    ElMessage.warning(t('modelSelector.alreadySelected'));
     return;
   }
 
@@ -91,31 +94,31 @@ onMounted(loadModels);
   <div class="model-selector">
     <div v-if="loadingModels" class="loading-banner">
       <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-      Loading models...
+      {{ t('modelSelector.loadingModels') }}
     </div>
 
     <el-alert v-if="modelError" :title="modelError" type="error" show-icon>
       <template #default>
-        <el-button size="small" @click="loadModels">Retry</el-button>
+        <el-button size="small" @click="loadModels">{{ t('common.retry') }}</el-button>
       </template>
     </el-alert>
 
     <el-alert
       v-if="!loadingModels && allModels.length === 0 && !modelError"
-      title="No models cached yet. Go to Providers page and click &quot;Fetch Models&quot; for each provider."
+      :title="t('modelSelector.noModelsCached')"
       type="info"
       show-icon
     />
 
     <el-radio-group v-if="allModels.length > 0" v-model="inputMode" class="mode-toggle">
-      <el-radio-button value="select">Select from cached</el-radio-button>
-      <el-radio-button value="manual">Manual input</el-radio-button>
+      <el-radio-button value="select">{{ t('modelSelector.selectCached') }}</el-radio-button>
+      <el-radio-button value="manual">{{ t('modelSelector.manualInput') }}</el-radio-button>
     </el-radio-group>
 
     <div v-if="inputMode === 'select' && allModels.length > 0" class="add-row">
       <el-select
         v-model="selectedModelId"
-        placeholder="Select a model..."
+        :placeholder="t('modelSelector.selectPlaceholder')"
         style="flex: 1"
         filterable
       >
@@ -136,12 +139,12 @@ onMounted(loadModels);
         type="primary"
         :disabled="!selectedModelId"
         @click="addTarget"
-      >+ Add Target</el-button>
+      >{{ t('modelSelector.addTarget') }}</el-button>
     </div>
 
     <div v-if="inputMode === 'manual' && providers.length > 0" class="manual-input">
       <div class="add-row">
-        <el-select v-model="manualProviderId" placeholder="Select provider..." style="flex: 1">
+        <el-select v-model="manualProviderId" :placeholder="t('modelSelector.selectProviderPlaceholder')" style="flex: 1">
           <el-option
             v-for="p in providers"
             :key="p.id"
@@ -154,7 +157,7 @@ onMounted(loadModels);
       <div class="add-row">
         <el-input
           v-model="manualModelId"
-          placeholder="e.g. gpt-4o, claude-opus-4-20250514"
+          :placeholder="t('modelSelector.modelIdPlaceholder')"
           :disabled="!manualProviderId"
           style="flex: 1"
         />
@@ -162,12 +165,12 @@ onMounted(loadModels);
           type="primary"
           :disabled="!manualProviderId || !manualModelId.trim()"
           @click="addTarget"
-        >+ Add Target</el-button>
+        >{{ t('modelSelector.addTarget') }}</el-button>
       </div>
     </div>
 
     <div v-if="targets.length > 0" class="targets">
-      <label>Selected Targets ({{ targets.length }})</label>
+      <label>{{ t('modelSelector.selectedTargets') }} ({{ targets.length }})</label>
       <div class="chips">
         <el-tag
           v-for="(t, i) in targets"

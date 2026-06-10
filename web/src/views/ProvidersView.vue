@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import type { Provider } from '../types';
 import { listProviders, deleteProvider, fetchProviderModels } from '../api/providers';
 import { Plus } from '@element-plus/icons-vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 
 const router = useRouter();
+const { t } = useI18n();
 const providers = ref<Provider[]>([]);
 const loading = ref(false);
 const error = ref('');
@@ -39,9 +41,9 @@ async function handleFetchModels(provider: Provider) {
 async function handleDelete(provider: Provider) {
   try {
     await ElMessageBox.confirm(
-      `Delete provider "${provider.name}"? This cannot be undone.`,
-      'Confirm Delete',
-      { confirmButtonText: 'Delete', cancelButtonText: 'Cancel', type: 'warning' },
+      t('providers.confirmDelete', { name: provider.name }),
+      t('providers.confirmDeleteTitle'),
+      { confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel'), type: 'warning' },
     );
     await deleteProvider(provider.id);
     await loadProviders();
@@ -65,21 +67,21 @@ onMounted(loadProviders);
   <div class="page">
     <div class="page-header">
       <div>
-        <h1>Providers</h1>
-        <p class="subtitle">Configure LLM API providers used for evaluations.</p>
+        <h1>{{ t('providers.title') }}</h1>
+        <p class="subtitle">{{ t('providers.subtitle') }}</p>
       </div>
-      <el-button type="primary" :icon="Plus" @click="goNew">New Provider</el-button>
+      <el-button type="primary" :icon="Plus" @click="goNew">{{ t('providers.newProvider') }}</el-button>
     </div>
 
     <div v-if="loading" class="loading">
       <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-      <span>Loading providers...</span>
+      <span>{{ t('providers.loadingProviders') }}</span>
     </div>
 
     <el-alert v-else-if="error" :title="error" type="error" show-icon />
 
-    <el-empty v-else-if="providers.length === 0" description="No providers yet">
-      <el-button type="primary" @click="goNew">+ New Provider</el-button>
+    <el-empty v-else-if="providers.length === 0" :description="t('providers.noProviders')">
+      <el-button type="primary" @click="goNew">+ {{ t('providers.newProvider') }}</el-button>
     </el-empty>
 
     <div v-else class="provider-grid">
@@ -95,15 +97,15 @@ onMounted(loadProviders);
             <el-tag size="small">{{ p.adapterType }}</el-tag>
           </div>
           <el-tag :type="p.isEnabled ? 'success' : 'info'">
-            {{ p.isEnabled ? 'Enabled' : 'Disabled' }}
+            {{ p.isEnabled ? t('providers.enabled') : t('providers.disabled') }}
           </el-tag>
         </div>
 
         <el-descriptions :column="1" size="small" border>
-          <el-descriptions-item label="Base URL">
+          <el-descriptions-item :label="t('providers.baseUrl')">
             <span class="mono">{{ p.apiBaseUrl }}</span>
           </el-descriptions-item>
-          <el-descriptions-item label="API Key">
+          <el-descriptions-item :label="t('providers.apiKey')">
             <span class="mono">{{ p.apiKey || '••••••••' }}</span>
           </el-descriptions-item>
         </el-descriptions>
@@ -114,10 +116,10 @@ onMounted(loadProviders);
             :loading="fetchingModels.has(p.id)"
             @click="handleFetchModels(p)"
           >
-            {{ fetchingModels.has(p.id) ? 'Fetching...' : 'Fetch Models' }}
+            {{ fetchingModels.has(p.id) ? t('providers.fetching') : t('providers.fetchModels') }}
           </el-button>
-          <el-button size="small" @click="goEdit(p)">Edit</el-button>
-          <el-button size="small" type="danger" @click="handleDelete(p)">Delete</el-button>
+          <el-button size="small" @click="goEdit(p)">{{ t('common.edit') }}</el-button>
+          <el-button size="small" type="danger" @click="handleDelete(p)">{{ t('common.delete') }}</el-button>
         </div>
       </el-card>
     </div>

@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { AiScoreResult, AiScoreItem } from '../../types';
 
 const props = defineProps<{
   aiScores: AiScoreResult;
 }>();
 
+const { t } = useI18n();
+
 const dimensionLabels: Record<string, string> = {
-  accuracy: '准确性',
-  completeness: '完整性',
-  coherence: '逻辑性',
-  creativity: '创造性',
-  instructionFollowing: '指令遵循',
+  accuracy: 'aiScore.accuracy',
+  completeness: 'aiScore.completeness',
+  coherence: 'aiScore.coherence',
+  creativity: 'aiScore.creativity',
+  instructionFollowing: 'aiScore.instructionFollowing',
 };
 
 const dimensionOrder = ['accuracy', 'completeness', 'coherence', 'creativity', 'instructionFollowing'];
@@ -54,13 +57,13 @@ function barColor(score: number, maxScore: number): string {
 <template>
   <div class="ai-score-panel">
     <div class="score-header">
-      <span class="score-badge">AI Score {{ weightedTotal }} / {{ maxWeightedTotal }}</span>
+      <span class="score-badge">{{ t('aiScore.title') }} {{ weightedTotal }} / {{ maxWeightedTotal }}</span>
     </div>
 
     <div class="score-bars">
       <div v-for="s in orderedScores" :key="s.dimension" class="score-row">
         <div class="score-label">
-          <span class="dim-name">{{ dimensionLabels[s.dimension] || s.dimension }}</span>
+          <span class="dim-name">{{ $t(dimensionLabels[s.dimension]) || s.dimension }}</span>
           <span class="dim-score">{{ s.score }}/{{ s.maxScore }}</span>
         </div>
         <div class="bar-track">

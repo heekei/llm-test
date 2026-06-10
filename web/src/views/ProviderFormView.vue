@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import type { CreateProviderInput } from '../types';
 import { createProvider, getProvider, updateProvider } from '../api/providers';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 
 const isEdit = computed(() => route.name === 'provider-edit');
 const providerId = computed(() => (route.params.id as string) || '');
@@ -88,13 +90,13 @@ onMounted(loadProvider);
 <template>
   <div class="page">
     <div class="page-header">
-      <el-button :icon="ArrowLeft" @click="goBack" text>Back</el-button>
-      <h1>{{ isEdit ? 'Edit Provider' : 'New Provider' }}</h1>
+      <el-button :icon="ArrowLeft" @click="goBack" text>{{ t('common.back') }}</el-button>
+      <h1>{{ isEdit ? t('providers.updateProvider') : t('providers.createProvider') }}</h1>
     </div>
 
     <div v-if="loading" class="loading">
       <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-      <span>Loading provider...</span>
+      <span>{{ t('common.loading') }}</span>
     </div>
 
     <el-alert v-else-if="fetchError" :title="fetchError" type="error" show-icon />
@@ -109,38 +111,38 @@ onMounted(loadProvider);
         label-position="top"
         @submit.prevent="handleSubmit"
       >
-        <el-form-item label="Name" prop="name">
-          <el-input v-model="form.name" placeholder="My OpenAI Provider" />
+        <el-form-item :label="t('providers.name')" prop="name">
+          <el-input v-model="form.name" :placeholder="t('providers.namePlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="API Base URL" prop="apiBaseUrl">
-          <el-input v-model="form.apiBaseUrl" placeholder="https://api.openai.com/v1" />
-          <div class="form-hint">The base URL for the provider's API endpoint.</div>
+        <el-form-item :label="t('providers.apiBaseUrl')" prop="apiBaseUrl">
+          <el-input v-model="form.apiBaseUrl" :placeholder="t('providers.apiBaseUrlPlaceholder')" />
+          <div class="form-hint">{{ t('providers.apiBaseUrlHint') }}</div>
         </el-form-item>
 
-        <el-form-item label="API Key" :prop="isEdit ? '' : 'apiKey'" :required="!isEdit">
+        <el-form-item :label="t('providers.apiKey')" :prop="isEdit ? '' : 'apiKey'" :required="!isEdit">
           <el-input
             v-model="form.apiKey"
             type="password"
             show-password
-            :placeholder="isEdit ? 'Leave blank to keep existing' : 'sk-...'"
+            :placeholder="isEdit ? t('providers.apiKeyPlaceholderEdit') : t('providers.apiKeyPlaceholder')"
           />
-          <div v-if="isEdit" class="form-hint">Leave blank to keep the existing key.</div>
+          <div v-if="isEdit" class="form-hint">{{ t('providers.apiKeyHintEdit') }}</div>
         </el-form-item>
 
-        <el-form-item label="Adapter Type" prop="adapterType">
+        <el-form-item :label="t('providers.adapterType')" prop="adapterType">
           <el-select v-model="form.adapterType" style="width: 100%">
             <el-option label="OpenAI" value="openai" />
             <el-option label="Anthropic" value="anthropic" />
           </el-select>
-          <div class="form-hint">Select the API format this provider uses.</div>
+          <div class="form-hint">{{ t('providers.adapterTypeHint') }}</div>
         </el-form-item>
 
         <el-form-item>
           <div class="form-actions">
-            <el-button @click="goBack">Cancel</el-button>
+            <el-button @click="goBack">{{ t('common.cancel') }}</el-button>
             <el-button type="primary" native-type="submit" :loading="saving">
-              {{ saving ? 'Saving...' : isEdit ? 'Update Provider' : 'Create Provider' }}
+              {{ saving ? t('providers.saving') : isEdit ? t('providers.updateProvider') : t('providers.createProvider') }}
             </el-button>
           </div>
         </el-form-item>

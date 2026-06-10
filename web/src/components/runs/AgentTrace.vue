@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import type { AgentTraceStep } from '../../types';
 import { Document, Tools, Finished, CircleCheck, CircleClose } from '@element-plus/icons-vue';
 
@@ -8,6 +9,8 @@ const props = defineProps<{
   currentIteration?: number;
   live?: boolean; // true during active streaming
 }>();
+
+const { t } = useI18n();
 
 /** Group trace steps by iteration */
 const iterations = computed(() => {
@@ -48,14 +51,14 @@ function formatInput(input: object | undefined): string {
   <div class="agent-trace">
     <div v-if="trace.length === 0 && live" class="trace-waiting">
       <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-      <span>Agent is thinking...</span>
+      <span>{{ t('agentTrace.thinking') }}</span>
     </div>
 
     <div v-for="group in iterations" :key="group.iter" class="iteration-group">
       <div class="iteration-header">
         <span class="iteration-num">#{{ group.iter }}</span>
         <el-tag v-if="live && group.iter === (currentIteration || 1)" type="primary" size="small" effect="dark">
-          In progress
+          {{ t('agentTrace.inProgress') }}
         </el-tag>
       </div>
 
@@ -71,7 +74,7 @@ function formatInput(input: object | undefined): string {
               <el-icon><Document /></el-icon>
             </div>
             <div class="step-body">
-              <div class="step-label">Response</div>
+              <div class="step-label">{{ $t('agentTrace.response') }}</div>
               <div class="step-content text-content">{{ truncate(step.content, 500) }}</div>
             </div>
           </template>
@@ -87,11 +90,11 @@ function formatInput(input: object | undefined): string {
                 <span v-if="step.toolCallId" class="tool-id">{{ step.toolCallId?.slice(0, 8) }}...</span>
               </div>
               <details v-if="step.toolInput && Object.keys(step.toolInput).length > 0" class="tool-input">
-                <summary>Input</summary>
+                <summary>{{ $t('agentTrace.input') }}</summary>
                 <pre>{{ formatInput(step.toolInput) }}</pre>
               </details>
               <details :open="step.isError" class="tool-output">
-                <summary>{{ step.isError ? '✕ Error' : '✓ Result' }}</summary>
+                <summary>{{ step.isError ? $t('agentTrace.error') : $t('agentTrace.result') }}</summary>
                 <pre :class="{ 'output-error': step.isError }">{{ step.content }}</pre>
               </details>
             </div>
@@ -105,7 +108,7 @@ function formatInput(input: object | undefined): string {
             </div>
             <div class="step-body">
               <div class="step-label">
-                {{ step.isError ? 'Error' : 'Result' }}
+                {{ step.isError ? $t('agentTrace.error') : $t('agentTrace.result') }}
                 <span v-if="step.toolCallId" class="tool-id">{{ step.toolCallId?.slice(0, 8) }}...</span>
               </div>
               <div :class="['step-content', { 'error-content': step.isError }]">
@@ -119,7 +122,7 @@ function formatInput(input: object | undefined): string {
 
     <div v-if="live && trace.length > 0" class="trace-active-dot">
       <span class="dot-pulse"></span>
-      Working...
+      {{ t('agentTrace.working') }}
     </div>
   </div>
 </template>

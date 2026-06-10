@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import type { Task } from '../types';
 import { listTasks } from '../api/tasks';
 import { Plus } from '@element-plus/icons-vue';
 
 const router = useRouter();
+const { t } = useI18n();
 const tasks = ref<Task[]>([]);
 const loading = ref(false);
 const error = ref('');
@@ -51,21 +53,21 @@ onMounted(loadTasks);
   <div class="page">
     <div class="page-header">
       <div>
-        <h1>Tasks</h1>
-        <p class="subtitle">Evaluation prompts you can run against any configured model.</p>
+        <h1>{{ t('tasks.title') }}</h1>
+        <p class="subtitle">{{ t('tasks.subtitle') }}</p>
       </div>
-      <el-button type="primary" :icon="Plus" @click="goNew">New Task</el-button>
+      <el-button type="primary" :icon="Plus" @click="goNew">{{ t('tasks.newTask') }}</el-button>
     </div>
 
     <div v-if="loading" class="loading">
       <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-      <span>Loading tasks...</span>
+      <span>{{ t('tasks.loadingTasks') }}</span>
     </div>
 
     <el-alert v-else-if="error" :title="error" type="error" show-icon />
 
-    <el-empty v-else-if="tasks.length === 0" description="No tasks yet">
-      <el-button type="primary" @click="goNew">+ New Task</el-button>
+    <el-empty v-else-if="tasks.length === 0" :description="t('tasks.noTasks')">
+      <el-button type="primary" @click="goNew">+ {{ t('tasks.newTask') }}</el-button>
     </el-empty>
 
     <div v-else class="task-list">
@@ -78,15 +80,15 @@ onMounted(loadTasks);
       >
         <div class="task-head">
           <h3>{{ t.title }}</h3>
-          <el-tag>{{ t._count?.runs ?? 0 }} runs</el-tag>
+          <el-tag>{{ t._count?.runs ?? 0 }} {{ $t('tasks.runs') }}</el-tag>
         </div>
         <p v-if="t.description" class="task-desc">{{ truncate(t.description, 140) }}</p>
         <div class="prompt-preview">
-          <span class="label">Prompt</span>
+          <span class="label">{{ $t('tasks.prompt') }}</span>
           <span class="text">{{ truncate(t.prompt, 200) }}</span>
         </div>
         <div class="task-meta">
-          <span>Created {{ formatDate(t.createdAt) }}</span>
+          <span>{{ $t('tasks.created') }} {{ formatDate(t.createdAt) }}</span>
           <el-tag size="small" type="info">temp {{ t.temperature }}</el-tag>
           <el-tag size="small" type="info">max {{ t.maxTokens }} tok</el-tag>
         </div>

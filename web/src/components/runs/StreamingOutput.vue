@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { marked } from 'marked';
 import type { AgentTraceStep } from '../../types';
 import AgentTrace from './AgentTrace.vue';
@@ -17,17 +18,19 @@ const props = defineProps<{
   currentIteration?: number;
 }>();
 
+const { t } = useI18n();
+
 const thinkingExpanded = ref(true);
 
 const renderedMarkdown = computed(() => {
   if (!props.content && props.status === 'pending') {
-    return '<p class="placeholder">Waiting to start...</p>';
+    return `<p class="placeholder">${t('streaming.waiting')}</p>`;
   }
   if (!props.content && props.status === 'running') {
     return '';
   }
   if (!props.content) {
-    return '<p class="placeholder">No output</p>';
+    return `<p class="placeholder">${t('streaming.noOutput')}</p>`;
   }
   return marked(props.content) as string;
 });
@@ -47,12 +50,7 @@ const statusTagType = computed(() => {
 });
 
 const statusLabel = computed(() => {
-  switch (props.status) {
-    case 'pending': return 'Pending';
-    case 'running': return 'Running';
-    case 'completed': return 'Completed';
-    case 'error': return 'Error';
-  }
+  return t(`streaming.${props.status}`);
 });
 
 const latencyLabel = computed(() => {
@@ -91,7 +89,7 @@ marked.setOptions({
           @click="thinkingExpanded = !thinkingExpanded"
         >
           <span :class="['toggle-arrow', { open: thinkingExpanded }]">&#9654;</span>
-          Thinking
+          {{ t('streaming.thinking') }}
           <span v-if="status === 'running'" class="thinking-inline-spinner"></span>
         </el-button>
         <div v-show="thinkingExpanded" class="thinking-body markdown-body" v-html="thinkingHtml"></div>

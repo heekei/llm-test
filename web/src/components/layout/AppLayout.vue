@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router';
 import { Monitor, Collection, Clock, DataAnalysis } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
+import LangSwitch from './LangSwitch.vue';
+
+const { t } = useI18n();
 </script>
 
 <template>
@@ -19,29 +23,30 @@ import { Monitor, Collection, Clock, DataAnalysis } from '@element-plus/icons-vu
         >
           <el-menu-item index="/tasks">
             <el-icon><Collection /></el-icon>
-            <span>Tasks</span>
+            <span>{{ t('nav.tasks') }}</span>
           </el-menu-item>
           <el-menu-item index="/providers">
             <el-icon><Monitor /></el-icon>
-            <span>Providers</span>
+            <span>{{ t('nav.providers') }}</span>
           </el-menu-item>
           <el-menu-item index="/history">
             <el-icon><Clock /></el-icon>
-            <span>History</span>
+            <span>{{ t('nav.history') }}</span>
           </el-menu-item>
           <el-menu-item index="/compare">
             <el-icon><DataAnalysis /></el-icon>
-            <span>Compare</span>
+            <span>{{ t('nav.compare') }}</span>
           </el-menu-item>
         </el-menu>
         <div class="sidebar-footer">
-          <div class="version">v0.1.0</div>
+          <LangSwitch />
+          <div class="version">{{ t('version') }}</div>
         </div>
       </el-aside>
       <el-container>
         <el-header height="56px" class="app-header">
-          <span class="header-title">LLM Test Platform</span>
-          <span class="header-sub">Evaluate and compare language models</span>
+          <span class="header-title">{{ t('header.title') }}</span>
+          <span class="header-sub">{{ t('header.subtitle') }}</span>
         </el-header>
         <el-main class="app-content">
           <RouterView />
@@ -118,6 +123,9 @@ import { Monitor, Collection, Clock, DataAnalysis } from '@element-plus/icons-vu
 .sidebar-footer {
   padding: 12px 20px;
   border-top: 1px solid var(--border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .version {

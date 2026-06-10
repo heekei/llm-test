@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import type { TaskRun } from '../types';
 import { listRuns } from '../api/runs';
 
 const router = useRouter();
+const { t } = useI18n();
 const runs = ref<TaskRun[]>([]);
 const loading = ref(false);
 const error = ref('');
@@ -60,30 +62,30 @@ onMounted(loadRuns);
   <div class="page">
     <div class="page-header">
       <div>
-        <h1>History</h1>
-        <p class="subtitle">All evaluation runs across every task.</p>
+        <h1>{{ t('history.title') }}</h1>
+        <p class="subtitle">{{ t('history.subtitle') }}</p>
       </div>
       <div class="filters">
-        <span class="filter-label">Status</span>
-        <el-select v-model="statusFilter" placeholder="All" clearable style="width: 140px">
-          <el-option label="Completed" value="completed" />
-          <el-option label="Error" value="error" />
-          <el-option label="Running" value="running" />
-          <el-option label="Pending" value="pending" />
+        <span class="filter-label">{{ t('history.status') }}</span>
+        <el-select v-model="statusFilter" :placeholder="t('history.filterAll')" clearable style="width: 140px">
+          <el-option :label="t('history.filterCompleted')" value="completed" />
+          <el-option :label="t('history.filterError')" value="error" />
+          <el-option :label="t('history.filterRunning')" value="running" />
+          <el-option :label="t('history.filterPending')" value="pending" />
         </el-select>
       </div>
     </div>
 
     <div v-if="loading" class="loading">
       <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-      <span>Loading runs...</span>
+      <span>{{ t('history.loading') }}</span>
     </div>
 
     <el-alert v-else-if="error" :title="error" type="error" show-icon />
 
-    <el-empty v-else-if="filteredRuns.length === 0" :description="statusFilter ? 'Try a different filter.' : 'Run a task to populate this list.'">
+    <el-empty v-else-if="filteredRuns.length === 0" :description="statusFilter ? t('history.emptyFilter') : t('history.emptyAll')">
       <template v-if="statusFilter">
-        <el-button @click="statusFilter = ''">Clear Filter</el-button>
+        <el-button @click="statusFilter = ''">{{ t('history.clearFilter') }}</el-button>
       </template>
     </el-empty>
 
@@ -95,40 +97,40 @@ onMounted(loadRuns);
         @row-click="goTask"
         row-style="cursor: pointer"
       >
-        <el-table-column label="Task" prop="task.title" sortable="custom">
+        <el-table-column :label="t('history.task')" prop="task.title" sortable="custom">
           <template #default="{ row }">
-            <span class="task-title">{{ row.task?.title || 'Unknown' }}</span>
+            <span class="task-title">{{ row.task?.title || t('common.unknown') }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Provider" prop="provider.name">
+        <el-table-column :label="t('history.provider')" prop="provider.name">
           <template #default="{ row }">
             {{ row.provider?.name || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="Model" prop="modelId">
+        <el-table-column :label="t('history.model')" prop="modelId">
           <template #default="{ row }">
             <span class="mono">{{ row.modelId }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Status" prop="status" width="110">
+        <el-table-column :label="t('history.status')" prop="status" width="110">
           <template #default="{ row }">
             <el-tag :type="statusTagType[row.status] || 'info'" size="small">
-              {{ row.status }}
+              {{ t(`status.${row.status}`) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="Latency" prop="latencyMs" width="100" sortable="custom">
+        <el-table-column :label="t('history.latency')" prop="latencyMs" width="100" sortable="custom">
           <template #default="{ row }">
             <span class="mono">{{ formatLatency(row.latencyMs) }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Score" prop="score" width="80" sortable="custom">
+        <el-table-column :label="t('history.score')" prop="score" width="80" sortable="custom">
           <template #default="{ row }">
             <span v-if="row.score != null" class="score">★ {{ row.score }}</span>
             <span v-else class="muted">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="Created" prop="createdAt" width="170" sortable="custom">
+        <el-table-column :label="t('history.created')" prop="createdAt" width="170" sortable="custom">
           <template #default="{ row }">
             <span class="muted">{{ formatDate(row.createdAt) }}</span>
           </template>

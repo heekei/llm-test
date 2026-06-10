@@ -1,23 +1,26 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { TASK_TEMPLATES, type TaskTemplate } from '../../data/templates';
 
 const emit = defineEmits<{
   (e: 'select', template: TaskTemplate): void;
 }>();
 
+const { t } = useI18n();
+
 const showDialog = ref(false);
 const selectedCategory = ref<string>('all');
 
 const categories = [
-  { value: 'all', label: '全部' },
-  { value: 'reasoning', label: '逻辑推理' },
-  { value: 'coding', label: '代码编程' },
-  { value: 'agentic', label: 'Agent 工具使用' },
-  { value: 'creative', label: '创意写作' },
-  { value: 'knowledge', label: '知识问答' },
-  { value: 'instruction', label: '指令遵循' },
-  { value: 'safety', label: '安全测试' },
+  { value: 'all', labelKey: 'categories.all' },
+  { value: 'reasoning', labelKey: 'categories.reasoning' },
+  { value: 'coding', labelKey: 'categories.coding' },
+  { value: 'agentic', labelKey: 'categories.agentic' },
+  { value: 'creative', labelKey: 'categories.creative' },
+  { value: 'knowledge', labelKey: 'categories.knowledge' },
+  { value: 'instruction', labelKey: 'categories.instruction' },
+  { value: 'safety', labelKey: 'categories.safety' },
 ];
 
 const filteredTemplates = computed(() => {
@@ -46,18 +49,18 @@ defineExpose({ openDialog });
 <template>
   <div>
     <el-button @click="openDialog">
-      📋 从模板创建
+      {{ t('tasks.templateButton') }}
     </el-button>
 
     <el-dialog
       v-model="showDialog"
-      title="选择任务模板"
+      :title="t('tasks.templateDialogTitle')"
       width="900px"
       :close-on-click-modal="false"
       @close="closeDialog"
     >
       <template #header>
-        <h2>选择任务模板</h2>
+        <h2>{{ t('tasks.templateDialogTitle') }}</h2>
       </template>
 
       <div class="category-filter">
@@ -69,7 +72,7 @@ defineExpose({ openDialog });
           round
           @click="selectedCategory = cat.value"
         >
-          {{ cat.label }}
+          {{ t(cat.labelKey) }}
         </el-button>
       </div>
 
@@ -86,7 +89,7 @@ defineExpose({ openDialog });
             <div class="template-tags">
               <el-tag v-if="template.mode === 'agentic'" size="small" type="danger" effect="dark">Agent</el-tag>
               <el-tag size="small" :type="template.category === 'reasoning' ? 'primary' : template.category === 'coding' ? '' : template.category === 'agentic' ? 'danger' : template.category === 'creative' ? 'warning' : template.category === 'knowledge' ? 'success' : template.category === 'safety' ? 'danger' : 'info'">
-                {{ categories.find(c => c.value === template.category)?.label }}
+                {{ t(`categories.${template.category}`) }}
               </el-tag>
             </div>
           </div>
@@ -98,7 +101,7 @@ defineExpose({ openDialog });
       </div>
 
       <template #footer>
-        <el-button @click="closeDialog">取消</el-button>
+        <el-button @click="closeDialog">{{ t('tasks.templateCancel') }}</el-button>
       </template>
     </el-dialog>
   </div>
