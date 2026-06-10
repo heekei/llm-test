@@ -25,15 +25,6 @@ A self-hosted web platform for comparing LLM performance across multiple models 
 | State | Pinia |
 | Runtime | Node.js 18+ |
 
-## Screenshots
-
-> TODO: Add screenshots here
-
-- Task list with templates
-- Streaming evaluation output
-- Side-by-side comparison view
-- AI scoring panel
-
 ## Quick Start
 
 ### Prerequisites
