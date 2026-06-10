@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import type { TaskRun } from '../types';
 import { compareRuns } from '../api/runs';
@@ -9,6 +10,7 @@ import AiScorePanel from '../components/runs/AiScorePanel.vue';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const taskId = computed(() => (route.params.taskId as string) || '');
 
 const taskTitle = ref('');
@@ -24,7 +26,7 @@ const averageScore = computed(() => {
 });
 
 function renderMarkdown(content: string | null | undefined): string {
-  if (!content) return '<p class="placeholder">No output</p>';
+  if (!content) return `<p class="placeholder">${t('compare.noOutput')}</p>`;
   return marked(content) as string;
 }
 
@@ -71,29 +73,29 @@ marked.setOptions({
   <div class="page">
     <div class="page-header">
       <div>
-        <el-button :icon="ArrowLeft" @click="router.back()" text>Back</el-button>
-        <h1>Compare Runs</h1>
+        <el-button :icon="ArrowLeft" @click="router.back()" text>{{ t('common.back') }}</el-button>
+        <h1>{{ t('compare.title') }}</h1>
       </div>
     </div>
 
-    <el-empty v-if="!taskId" description="Select a task to compare">
+    <el-empty v-if="!taskId" :description="t('compare.selectTask')">
       <template #extra>
-        <p>Navigate to a task detail page and click "Compare Runs".</p>
+        <p>{{ t('compare.selectTaskHint') }}</p>
       </template>
     </el-empty>
 
     <div v-else-if="loading" class="loading">
       <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-      <span>Loading comparison...</span>
+      <span>{{ t('compare.loading') }}</span>
     </div>
 
     <el-alert v-else-if="error" :title="error" type="error" show-icon />
 
     <template v-else>
-      <el-empty v-if="runs.length === 0" description="No runs to compare">
+      <el-empty v-if="runs.length === 0" :description="t('compare.noRuns')">
         <template #extra>
           <el-button type="primary" @click="router.push({ name: 'task-detail', params: { id: taskId } })">
-            Go to Task
+            {{ t('compare.goToTask') }}
           </el-button>
         </template>
       </el-empty>
@@ -101,15 +103,15 @@ marked.setOptions({
       <template v-else>
         <div class="summary-bar">
           <div class="summary-item">
-            <span class="summary-label">Task</span>
+            <span class="summary-label">{{ t('compare.task') }}</span>
             <span class="summary-value">{{ taskTitle }}</span>
           </div>
           <div class="summary-item">
-            <span class="summary-label">Runs</span>
+            <span class="summary-label">{{ t('compare.runs') }}</span>
             <span class="summary-value">{{ runs.length }}</span>
           </div>
           <div v-if="averageScore != null" class="summary-item">
-            <span class="summary-label">Average Score</span>
+            <span class="summary-label">{{ t('compare.averageScore') }}</span>
             <span class="summary-value score">★ {{ averageScore.toFixed(1) }} / 5</span>
           </div>
         </div>
@@ -130,15 +132,15 @@ marked.setOptions({
 
             <div class="col-stats">
               <div v-if="r.latencyMs != null" class="stat">
-                <span class="stat-label">Latency</span>
+                <span class="stat-label">{{ t('compare.latency') }}</span>
                 <span class="stat-value mono">{{ formatLatency(r.latencyMs) }}</span>
               </div>
               <div v-if="r.score != null" class="stat">
-                <span class="stat-label">Score</span>
+                <span class="stat-label">{{ t('compare.score') }}</span>
                 <span class="stat-value score">★ {{ r.score }}/5</span>
               </div>
               <div v-if="r.scoreNote" class="stat full">
-                <span class="stat-label">Note</span>
+                <span class="stat-label">{{ t('compare.note') }}</span>
                 <span class="stat-value">{{ r.scoreNote }}</span>
               </div>
             </div>

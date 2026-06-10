@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import type { RunTarget, CreateTaskInput } from '../types';
 import type { TaskTemplate } from '../data/templates';
@@ -10,6 +11,7 @@ import TemplateSelector from '../components/tasks/TemplateSelector.vue';
 import { ElMessage } from 'element-plus';
 
 const router = useRouter();
+const { t } = useI18n();
 
 const form = reactive<CreateTaskInput>({
   title: '',
@@ -49,11 +51,11 @@ function applyTemplate(template: TaskTemplate) {
 async function handleSubmit() {
   error.value = '';
   if (!form.title.trim()) {
-    ElMessage.warning('Title is required.');
+    ElMessage.warning(t('tasks.titleRequired'));
     return;
   }
   if (!form.prompt.trim()) {
-    ElMessage.warning('Prompt is required.');
+    ElMessage.warning(t('tasks.promptRequired'));
     return;
   }
   saving.value = true;
@@ -93,8 +95,8 @@ function goBack() {
   <div class="page">
     <div class="page-header">
       <div>
-        <el-button :icon="ArrowLeft" @click="goBack" text>Back</el-button>
-        <h1>Create Task</h1>
+        <el-button :icon="ArrowLeft" @click="goBack" text>{{ t('common.back') }}</el-button>
+        <h1>{{ t('tasks.createTask') }}</h1>
       </div>
       <TemplateSelector @select="applyTemplate" />
     </div>
@@ -103,42 +105,42 @@ function goBack() {
       <el-alert v-if="error" :title="error" type="error" show-icon style="margin-bottom: 16px" />
 
       <el-form label-position="top" @submit.prevent="handleSubmit">
-        <el-form-item label="Title" required>
-          <el-input v-model="form.title" placeholder="Evaluate math reasoning" />
+        <el-form-item :label="t('tasks.title')" required>
+          <el-input v-model="form.title" :placeholder="t('tasks.titlePlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="Description">
+        <el-form-item :label="t('tasks.description')">
           <el-input
             v-model="form.description"
             type="textarea"
             :rows="2"
-            placeholder="Optional description of what this task evaluates..."
+            :placeholder="t('tasks.descriptionPlaceholder')"
           />
         </el-form-item>
 
-        <el-form-item label="System Prompt">
+        <el-form-item :label="t('tasks.systemPrompt')">
           <el-input
             v-model="form.systemPrompt"
             type="textarea"
             :rows="3"
-            placeholder="Optional system instructions for the model"
+            :placeholder="t('tasks.systemPromptPlaceholder')"
           />
-          <div class="form-hint">Optional system instructions for the model.</div>
+          <div class="form-hint">{{ t('tasks.systemPromptHint') }}</div>
         </el-form-item>
 
-        <el-form-item label="Prompt" required>
+        <el-form-item :label="t('tasks.promptLabel')" required>
           <el-input
             v-model="form.prompt"
             type="textarea"
             :rows="5"
-            placeholder="The user prompt to evaluate"
+            :placeholder="t('tasks.promptPlaceholder')"
           />
-          <div class="form-hint">The user prompt to evaluate.</div>
+          <div class="form-hint">{{ t('tasks.promptHint') }}</div>
         </el-form-item>
 
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="Temperature">
+            <el-form-item :label="t('tasks.temperature')">
               <el-input-number
                 v-model="form.temperature"
                 :min="0"
@@ -147,58 +149,58 @@ function goBack() {
                 :precision="1"
                 style="width: 100%"
               />
-              <div class="form-hint">0 - 2, default 0.7</div>
+              <div class="form-hint">{{ t('tasks.temperatureHint') }}</div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="Max Tokens">
+            <el-form-item :label="t('tasks.maxTokens')">
               <el-input-number
                 v-model="form.maxTokens"
                 :min="1"
                 :max="128000"
                 style="width: 100%"
               />
-              <div class="form-hint">Default 4096</div>
+              <div class="form-hint">{{ t('tasks.maxTokensHint') }}</div>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="Thinking Budget Tokens (Anthropic)">
+        <el-form-item :label="t('tasks.thinkingBudgetTokens')">
           <el-input-number
             v-model="form.thinkingBudgetTokens"
             :min="1024"
-            placeholder="Min 1024, leave empty to disable"
+            :placeholder="t('tasks.thinkingBudgetTokensPlaceholder')"
             style="width: 100%"
           />
-          <div class="form-hint">Enable Claude extended thinking. Must be ≥ 1024 and less than max tokens.</div>
+          <div class="form-hint">{{ t('tasks.thinkingBudgetTokensHint') }}</div>
         </el-form-item>
 
-        <el-form-item label="Reasoning Effort (OpenAI o-series)">
-          <el-select v-model="form.reasoningEffort" style="width: 100%" clearable placeholder="Off">
+        <el-form-item :label="t('tasks.reasoningEffort')">
+          <el-select v-model="form.reasoningEffort" style="width: 100%" clearable :placeholder="t('tasks.reasoningEffortPlaceholder')">
             <el-option label="Low" value="low" />
             <el-option label="Medium" value="medium" />
             <el-option label="High" value="high" />
           </el-select>
-          <div class="form-hint">Controls reasoning depth for o1/o3/o4-mini models. Only useful with reasoning models.</div>
+          <div class="form-hint">{{ t('tasks.reasoningEffortHint') }}</div>
         </el-form-item>
 
         <el-divider />
-        <h3>Agentic Mode</h3>
-        <p class="section-desc">Let the LLM use tools (bash, Python, file I/O, web) inside a Docker sandbox with a ReAct loop.</p>
+        <h3>{{ t('tasks.agenticMode') }}</h3>
+        <p class="section-desc">{{ t('tasks.agenticModeDesc') }}</p>
 
-        <el-form-item label="Mode">
+        <el-form-item :label="t('tasks.mode')">
           <el-switch
             v-model="form.mode"
             active-value="agentic"
             inactive-value="simple"
-            active-text="Agentic"
-            inactive-text="Simple"
+            :active-text="t('tasks.modeAgentic')"
+            :inactive-text="t('tasks.modeSimple')"
           />
-          <div class="form-hint">Simple: one-shot prompt → response. Agentic: multi-turn tool-using agent.</div>
+          <div class="form-hint">{{ t('tasks.modeHint') }}</div>
         </el-form-item>
 
         <template v-if="form.mode === 'agentic'">
-          <el-form-item label="Enabled Tools">
+          <el-form-item :label="t('tasks.enabledTools')">
             <el-checkbox-group v-model="form.tools">
               <el-checkbox label="bash">Bash</el-checkbox>
               <el-checkbox label="python">Python</el-checkbox>
@@ -206,41 +208,41 @@ function goBack() {
               <el-checkbox label="write_file">Write File</el-checkbox>
               <el-checkbox label="web_request">Web Request</el-checkbox>
             </el-checkbox-group>
-            <div class="form-hint">Select which tools the agent can use. Leave empty for all defaults.</div>
+            <div class="form-hint">{{ t('tasks.toolsHint') }}</div>
           </el-form-item>
 
           <el-row :gutter="16">
             <el-col :span="12">
-              <el-form-item label="Max Iterations">
+              <el-form-item :label="t('tasks.maxIterations')">
                 <el-input-number v-model="form.maxIterations" :min="1" :max="100" style="width: 100%" />
-                <div class="form-hint">Limit ReAct loop iterations (default 20)</div>
+                <div class="form-hint">{{ t('tasks.maxIterationsHint') }}</div>
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="Timeout (seconds)">
+              <el-form-item :label="t('tasks.timeout')">
                 <el-input-number v-model="form.agentTimeoutSec" :min="10" :max="3600" style="width: 100%" />
-                <div class="form-hint">Total agent run timeout (default 300s)</div>
+                <div class="form-hint">{{ t('tasks.timeoutHint') }}</div>
               </el-form-item>
             </el-col>
           </el-row>
 
-          <el-form-item label="Docker Image">
-            <el-input v-model="form.dockerImage" placeholder="agent-sandbox:latest (leave blank for default)" />
-            <div class="form-hint">Override the sandbox Docker image. Must be available on the Docker host.</div>
+          <el-form-item :label="t('tasks.dockerImage')">
+            <el-input v-model="form.dockerImage" :placeholder="t('tasks.dockerImagePlaceholder')" />
+            <div class="form-hint">{{ t('tasks.dockerImageHint') }}</div>
           </el-form-item>
         </template>
 
         <el-divider />
-        <h3>Model Targets (optional)</h3>
-        <p class="section-desc">Select models now, or add them later on the task detail page.</p>
+        <h3>{{ t('tasks.modelTargets') }}</h3>
+        <p class="section-desc">{{ t('tasks.modelTargetsDesc') }}</p>
 
         <ModelSelector v-model:targets="targets" />
 
         <el-divider />
         <div class="form-actions">
-          <el-button @click="goBack">Cancel</el-button>
+          <el-button @click="goBack">{{ t('common.cancel') }}</el-button>
           <el-button type="primary" native-type="submit" :loading="saving">
-            {{ saving ? 'Creating...' : 'Create Task' }}
+            {{ saving ? t('tasks.creating') : t('tasks.createTask') }}
           </el-button>
         </div>
       </el-form>

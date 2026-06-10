@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, reactive, computed, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import type { RunTarget, Task, TaskRun, AiScoreResult, ModelInfo } from '../types';
 import { getTask, deleteTask, getRunStreamUrl } from '../api/tasks';
@@ -16,6 +17,7 @@ import { ElMessageBox, ElMessage } from 'element-plus';
 
 const route = useRoute();
 const router = useRouter();
+const { t } = useI18n();
 const taskId = computed(() => route.params.id as string);
 const runStore = useRunStore();
 
@@ -175,9 +177,9 @@ async function handleDeleteTask() {
   if (!task.value) return;
   try {
     await ElMessageBox.confirm(
-      `Delete task "${task.value.title}"? All runs will be lost.`,
-      'Confirm Delete',
-      { confirmButtonText: 'Delete', cancelButtonText: 'Cancel', type: 'warning' },
+      t('taskDetail.confirmDeleteTask', { title: task.value.title }),
+      t('taskDetail.confirmDeleteTitle'),
+      { confirmButtonText: t('common.delete'), cancelButtonText: t('common.cancel'), type: 'warning' },
     );
     await deleteTask(task.value.id);
     router.push({ name: 'tasks' });
@@ -366,7 +368,7 @@ onUnmounted(() => {
   <div class="page">
     <div v-if="loading && !task" class="loading">
       <el-icon class="is-loading"><i class="el-icon-loading" /></el-icon>
-      <span>Loading task...</span>
+      <span>{{ t('taskDetail.loadingTask') }}</span>
     </div>
 
     <el-alert v-else-if="loadError" :title="loadError" type="error" show-icon />
@@ -374,7 +376,7 @@ onUnmounted(() => {
     <template v-else-if="task">
       <div class="page-header">
         <div class="header-left">
-          <el-button :icon="ArrowLeft" @click="router.push({ name: 'tasks' })" text>Back</el-button>
+          <el-button :icon="ArrowLeft" @click="router.push({ name: 'tasks' })" text>{{ t('taskDetail.back') }}</el-button>
           <div>
             <h1>{{ task.title }}</h1>
             <p v-if="task.description" class="subtitle">{{ task.description }}</p>
@@ -382,9 +384,9 @@ onUnmounted(() => {
         </div>
         <div class="header-actions">
           <el-button @click="router.push({ name: 'compare', params: { taskId: task.id } })">
-            Compare Runs
+            {{ t('taskDetail.compareRuns') }}
           </el-button>
-          <el-button type="danger" @click="handleDeleteTask">Delete</el-button>
+          <el-button type="danger" @click="handleDeleteTask">{{ t('common.delete') }}</el-button>
         </div>
       </div>
 
@@ -392,13 +394,13 @@ onUnmounted(() => {
         <el-row :gutter="24">
           <el-col :span="12">
             <div class="info-col">
-              <h3>Prompt</h3>
+              <h3>{{ t('taskDetail.prompt') }}</h3>
               <pre class="prompt-block">{{ task.prompt }}</pre>
             </div>
           </el-col>
           <el-col v-if="task.systemPrompt" :span="12">
             <div class="info-col">
-              <h3>System Prompt</h3>
+              <h3>{{ t('taskDetail.systemPrompt') }}</h3>
               <pre class="prompt-block">{{ task.systemPrompt }}</pre>
             </div>
           </el-col>
@@ -411,8 +413,8 @@ onUnmounted(() => {
       </el-card>
 
       <el-card>
-        <h2>Run on Models</h2>
-        <p class="section-desc">Select one or more provider + model combinations and start the run.</p>
+        <h2>{{ t('taskDetail.runOnModels') }}</h2>
+        <p class="section-desc">{{ t('taskDetail.runOnModelsDesc') }}</p>
         <ModelSelector v-model:targets="targets" />
         <div class="run-actions">
           <el-button
@@ -421,18 +423,18 @@ onUnmounted(() => {
             :loading="isStreaming"
             @click="runTargets"
           >
-            {{ isStreaming ? 'Running...' : `Run ${targets.length || ''} Model${targets.length === 1 ? '' : 's'}` }}
+            {{ isStreaming ? t('taskDetail.running') : t('taskDetail.runButton', { count: targets.length }) }}
           </el-button>
           <el-button
             v-if="isStreaming"
             @click="stopStream"
             type="warning"
-          >Stop</el-button>
+          >{{ t('taskDetail.stop') }}</el-button>
         </div>
       </el-card>
 
       <div v-if="activePanels.length > 0" class="run-panels">
-        <h2>Live Output</h2>
+        <h2>{{ t('taskDetail.liveOutput') }}</h2>
         <div class="panel-grid">
           <div v-for="panel in activePanels" :key="panel.key" class="panel-wrap">
             <StreamingOutput
@@ -449,7 +451,7 @@ onUnmounted(() => {
             />
             <div v-if="panel.status === 'completed' && panel.runId" class="score-block">
               <el-card shadow="hover">
-                <h3>Score this output</h3>
+                <h3>{{ t('taskDetail.scoreThis') }}</h3>
                 <div class="score-row">
                   <div class="stars">
                     <button
@@ -463,7 +465,7 @@ onUnmounted(() => {
                   </div>
                   <el-input
                     v-model="panel.scoreNote"
-                    placeholder="Optional note (why this score?)"
+                    :placeholder="t('taskDetail.scorePlaceholder')"
                     size="small"
                   />
                   <el-button
@@ -473,7 +475,7 @@ onUnmounted(() => {
                     :loading="panel.savingScore"
                     @click="submitScore(panel)"
                   >
-                    Save
+                    {{ t('common.save') }}
                   </el-button>
                 </div>
                 <el-alert v-if="panel.scoreError" :title="panel.scoreError" type="error" show-icon style="margin-top: 8px" />
@@ -484,7 +486,7 @@ onUnmounted(() => {
                     :disabled="scoringRunIds.has(panel.runId!)"
                     @click="openAiScoreDialog(panel.runId!, `${panel.providerName} / ${panel.modelId}`)"
                   >
-                    {{ scoringRunIds.has(panel.runId!) ? 'Scoring...' : 'AI Score' }}
+                    {{ scoringRunIds.has(panel.runId!) ? t('taskDetail.scoring') : t('taskDetail.aiScore') }}
                   </el-button>
                 </div>
 
@@ -497,7 +499,7 @@ onUnmounted(() => {
                   >
                     <div class="ai-score-header">
                       <span class="ai-score-judge">
-                        Judge: {{ score.judgeModelId }}
+                        {{ t('taskDetail.judge') }}: {{ score.judgeModelId }}
                         <span class="ai-score-date">{{ formatDate(score.judgedAt) }}</span>
                       </span>
                       <el-button
@@ -520,8 +522,8 @@ onUnmounted(() => {
       </div>
 
       <el-card>
-        <h2>Past Runs <span class="count">({{ pastRuns.length }})</span></h2>
-        <el-empty v-if="pastRuns.length === 0" description="No past runs yet." />
+        <h2>{{ t('taskDetail.pastRuns') }} <span class="count">({{ pastRuns.length }})</span></h2>
+        <el-empty v-if="pastRuns.length === 0" :description="t('taskDetail.noPastRuns')" />
 
         <div v-else class="past-runs">
           <div
@@ -541,7 +543,7 @@ onUnmounted(() => {
                 <el-tag
                   :type="r.status === 'completed' ? 'success' : r.status === 'error' ? 'danger' : r.status === 'running' ? 'primary' : 'warning'"
                   size="small"
-                >{{ r.status }}</el-tag>
+                >{{ t(`status.${r.status}`) }}</el-tag>
               </div>
               <div class="run-stats">
                 <span v-if="r.latencyMs != null" class="stat">{{ formatLatency(r.latencyMs) }}</span>
@@ -557,14 +559,14 @@ onUnmounted(() => {
                   @click="togglePastThinking(r.id)"
                 >
                   <span :class="['toggle-arrow', { open: expandedThinking.has(r.id) }]">&#9654;</span>
-                  Thinking
+                  {{ t('taskDetail.thinking') }}
                 </el-button>
                 <pre v-show="expandedThinking.has(r.id)" class="thinking-body-past">{{ r.thinkingOutput }}</pre>
               </div>
 
               <pre v-if="r.output">{{ r.output }}</pre>
               <pre v-else-if="r.error" class="output-error">{{ r.error }}</pre>
-              <p v-else class="output-empty">No output</p>
+              <p v-else class="output-empty">{{ t('taskDetail.noOutput') }}</p>
 
               <!-- Agent Trace in past runs -->
               <div v-if="r.agentTrace && r.agentTrace.length > 0" class="agent-trace-section">
@@ -603,7 +605,7 @@ onUnmounted(() => {
 
               <div class="run-actions-row">
                 <div v-if="r.score != null" class="human-score">
-                  <span class="score-label">Human Score</span>
+                  <span class="score-label">{{ t('taskDetail.humanScore') }}</span>
                   <span class="stars-display">{{ '★'.repeat(r.score) }}{{ '☆'.repeat(5 - r.score) }}</span>
                   <span v-if="r.scoreNote" class="score-note">{{ r.scoreNote }}</span>
                 </div>
@@ -611,9 +613,9 @@ onUnmounted(() => {
                   size="small"
                   :loading="scoringRunIds.has(r.id)"
                   :disabled="scoringRunIds.has(r.id)"
-                  @click.stop="openAiScoreDialog(r.id, `${r.provider?.name || 'Unknown'} / ${r.modelId}`)"
+                  @click.stop="openAiScoreDialog(r.id, `${r.provider?.name || t('common.unknown')} / ${r.modelId}`)"
                 >
-                  {{ scoringRunIds.has(r.id) ? 'Scoring...' : 'AI Score' }}
+                  {{ scoringRunIds.has(r.id) ? t('taskDetail.scoring') : t('taskDetail.aiScore') }}
                 </el-button>
               </div>
             </div>
@@ -624,17 +626,17 @@ onUnmounted(() => {
       <!-- AI Score Dialog -->
       <el-dialog
         v-model="showAiScoreDialog"
-        title="AI Score"
+        :title="t('taskDetail.aiScoreDialog')"
         width="480px"
         :close-on-click-modal="false"
         @close="closeAiScoreDialog"
       >
         <p class="dialog-desc">
-          Select a judge model to evaluate output from <strong>{{ aiScoreTargetRunLabel }}</strong>
+          {{ t('taskDetail.aiScoreDialogDesc') }} <strong>{{ aiScoreTargetRunLabel }}</strong>
         </p>
         <el-form label-position="top">
-          <el-form-item label="Judge Model">
-            <el-select v-model="judgeModelId" style="width: 100%" placeholder="Select a model...">
+          <el-form-item :label="t('taskDetail.judgeModel')">
+            <el-select v-model="judgeModelId" style="width: 100%" :placeholder="t('taskDetail.judgeModelPlaceholder')">
               <el-option-group
                 v-for="(models, providerId) in judgeModelsByProvider"
                 :key="providerId"
@@ -653,14 +655,14 @@ onUnmounted(() => {
         <el-alert v-if="aiScoreError" :title="aiScoreError" type="error" show-icon style="margin-top: 8px" />
 
         <template #footer>
-          <el-button @click="closeAiScoreDialog">Cancel</el-button>
+          <el-button @click="closeAiScoreDialog">{{ t('common.cancel') }}</el-button>
           <el-button
             type="primary"
             :disabled="!judgeModelId || aiScoreLoading"
             :loading="aiScoreLoading"
             @click="submitAiScore"
           >
-            {{ aiScoreLoading ? 'Submitting...' : 'Start AI Score' }}
+            {{ aiScoreLoading ? t('taskDetail.submitting') : t('taskDetail.startAiScore') }}
           </el-button>
         </template>
       </el-dialog>
