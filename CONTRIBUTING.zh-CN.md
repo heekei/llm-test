@@ -7,7 +7,7 @@
 ## 起步
 
 1. Fork 本仓库
-2. 克隆你的 Fork：`git clone https://github.com/YOUR_USERNAME/llm-test.git`
+2. 克隆你的 Fork：`git clone https://github.com/heekei/llm-test.git`
 3. 安装依赖：`npm install`
 4. 配置后端（见[快速开始](README.zh-CN.md#快速开始)）
 5. 创建分支：`git checkout -b feature/my-feature`

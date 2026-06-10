@@ -7,7 +7,7 @@ Thanks for your interest in contributing to the LLM Test Platform!
 ## Getting Started
 
 1. Fork the repository
-2. Clone your fork: `git clone https://github.com/YOUR_USERNAME/llm-test.git`
+2. Clone your fork: `git clone https://github.com/heekei/llm-test.git`
 3. Install dependencies: `npm install`
 4. Set up the backend (see [Quick Start](README.md#quick-start))
 5. Create a branch: `git checkout -b feature/my-feature`
