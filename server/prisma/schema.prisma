@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Provider {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  apiBaseUrl  String
+  apiKey      String
+  adapterType String   // "openai" | "anthropic"
+  isEnabled   Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  models    Model[]
+  taskRuns  TaskRun[]
+}
+
+model Model {
+  id         String   @id @default(uuid())
+  providerId String
+  modelId    String
+  name       String
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([providerId, modelId])
+}
+
+model Task {
+  id                   String   @id @default(uuid())
+  title                String
+  description          String?
+  systemPrompt         String?
+  prompt               String
+  temperature          Float    @default(0.7)
+  maxTokens            Int      @default(4096)
+  thinkingBudgetTokens Int?     // Anthropic-style extended thinking budget (min 1024)
+  reasoningEffort      String?  // OpenAI o-series: "low" | "medium" | "high"
+  defaultTargets       String?  // JSON array of { providerId, providerName, modelId }
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  runs TaskRun[]
+}
+
+model TaskRun {
+  id             String    @id @default(uuid())
+  taskId         String
+  providerId     String?
+  modelId        String
+  status         String    @default("pending") // pending | running | completed | error
+  output         String?
+  thinkingOutput String?   // Thinking/reasoning chain text (Claude thinking, DeepSeek R1 reasoning)
+  error          String?
+  latencyMs      Int?
+  tokensIn       Int?
+  tokensOut      Int?
+  firstTokenAt   DateTime?
+  score          Int?
+  scoreNote      String?
+  aiScores       String?   // JSON: [{ dimension, score, maxScore, weight, reasoning, judgeProviderId, judgeModelId }]
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  task     Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+  @@index([providerId])
+}
