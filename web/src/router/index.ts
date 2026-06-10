@@ -54,6 +54,11 @@ const router = createRouter({
           name: 'compare',
           component: () => import('../views/CompareView.vue'),
           props: true,
+          beforeEnter: (to: { params: { taskId?: string } }) => {
+            if (!to.params.taskId) {
+              return { name: 'tasks' };
+            }
+          },
         },
       ],
     },
