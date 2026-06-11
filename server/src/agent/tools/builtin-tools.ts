@@ -58,8 +58,11 @@ export const readFileTool: ToolHandler = {
   },
   toCommand(input: Record<string, unknown>, workspaceDir: string): string {
     const filePath = (input.path as string) || '';
-    // Sanitize: prevent path traversal
-    const safe = filePath.replace(/\.\./g, '').replace(/^\/+/, '');
+    // Sanitize: prevent path traversal, strip workspace prefix if already present
+    const safe = filePath
+      .replace(/\.\./g, '')
+      .replace(/^\/+/, '')
+      .replace(/^workspace\//, '');
     const fullPath = `${workspaceDir}/${safe}`;
     return `cat '${bashEscape(fullPath)}' 2>&1`;
   },
@@ -88,7 +91,10 @@ export const writeFileTool: ToolHandler = {
   toCommand(input: Record<string, unknown>, workspaceDir: string): string {
     const filePath = (input.path as string) || '';
     const content = (input.content as string) || '';
-    const safe = filePath.replace(/\.\./g, '').replace(/^\/+/, '');
+    const safe = filePath
+      .replace(/\.\./g, '')
+      .replace(/^\/+/, '')
+      .replace(/^workspace\//, '');
     const fullPath = `${workspaceDir}/${safe}`;
     // Ensure parent directory exists, then write
     return `mkdir -p '${bashEscape(fullPath.replace(/\/[^/]+$/, ''))}' 2>/dev/null; cat > '${bashEscape(fullPath)}' << 'LLMTEST_EOF'\n${content}\nLLMTEST_EOF`;
