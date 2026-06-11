@@ -34,7 +34,7 @@ function sanitizeOutput(raw: string): string {
 
 interface AgentTraceStep {
   iteration: number;
-  kind: 'llm_text' | 'tool_call' | 'tool_result';
+  kind: 'llm_text' | 'thinking' | 'tool_call' | 'tool_result';
   content: string;
   toolName?: string;
   toolCallId?: string;
@@ -157,7 +157,7 @@ export class AgentService {
         // Append assistant response to conversation
         messages.push({ role: 'assistant', content: blocks });
 
-        // Emit text blocks as SSE deltas
+        // Emit text and thinking blocks as SSE deltas
         for (const block of blocks) {
           if (block.type === 'text') {
             accumulatedText += block.text;
@@ -172,6 +172,20 @@ export class AgentService {
               iteration: iter + 1,
               kind: 'llm_text',
               content: block.text,
+              timestamp: new Date().toISOString(),
+            });
+          } else if (block.type === 'thinking') {
+            out.next({
+              data: JSON.stringify({
+                type: 'thinking',
+                runId: run.id,
+                content: block.thinking,
+              }),
+            });
+            trace.push({
+              iteration: iter + 1,
+              kind: 'thinking',
+              content: block.thinking,
               timestamp: new Date().toISOString(),
             });
           }

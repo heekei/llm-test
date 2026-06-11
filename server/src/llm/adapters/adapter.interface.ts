@@ -29,6 +29,12 @@ export interface ContentBlockText {
   text: string;
 }
 
+/** Extended thinking content block (Anthropic) */
+export interface ContentBlockThinking {
+  type: 'thinking';
+  thinking: string;
+}
+
 /** An assistant tool_use block — the model wants to call a tool */
 export interface ContentBlockToolUse {
   type: 'tool_use';
@@ -47,6 +53,7 @@ export interface ContentBlockToolResult {
 
 export type ContentBlock =
   | ContentBlockText
+  | ContentBlockThinking
   | ContentBlockToolUse
   | ContentBlockToolResult;
 
