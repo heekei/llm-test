@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ArrowLeft, Upload } from '@element-plus/icons-vue';
-import type { RunTarget, CreateTaskInput } from '../types';
+import type { RunTarget, CreateTaskInput, UploadAttachmentResponse } from '../types';
 import type { TaskTemplate } from '../data/templates';
 import { createTask, uploadAttachment } from '../api/tasks';
 import ModelSelector from '../components/tasks/ModelSelector.vue';
@@ -35,22 +35,8 @@ const error = ref('');
 
 // Attachment state
 const attachingFile = ref(false);
-const attachedFiles = ref<{ filename: string; text: string }[]>([]);
+const attachedFiles = ref<UploadAttachmentResponse[]>([]);
 const uploadRef = ref<any>(null);
-
-const fileText = computed(() => {
-  if (attachedFiles.value.length === 0) return '';
-  return attachedFiles.value
-    .map((f) => `[附件内容: ${f.filename}]\n${f.text}\n[/附件内容]`)
-    .join('\n\n');
-});
-
-const promptPreview = computed(() => {
-  const prompt = form.prompt.trim();
-  if (!fileText.value) return prompt;
-  if (!prompt) return fileText.value;
-  return `${fileText.value}\n\n${prompt}`;
-});
 
 function applyTemplate(template: TaskTemplate) {
   form.title = template.title;
@@ -73,17 +59,23 @@ async function handleSubmit() {
     ElMessage.warning(t('tasks.titleRequired'));
     return;
   }
-  if (!promptPreview.value) {
+  if (!form.prompt.trim()) {
     ElMessage.warning(t('tasks.promptRequired'));
     return;
   }
   saving.value = true;
   try {
-    const finalPrompt = promptPreview.value || form.prompt.trim();
     const payload: CreateTaskInput = {
       title: form.title.trim(),
-      prompt: finalPrompt,
+      prompt: form.prompt.trim(),
     };
+    if (attachedFiles.value.length > 0) {
+      payload.attachmentFiles = attachedFiles.value.map((f) => ({
+        filename: f.filename,
+        originalName: f.originalName,
+        mimeType: f.mimeType,
+      }));
+    }
     if (form.description?.trim()) payload.description = form.description.trim();
     if (form.systemPrompt?.trim()) payload.systemPrompt = form.systemPrompt.trim();
     if (form.temperature !== 0.7) payload.temperature = form.temperature;
@@ -115,8 +107,8 @@ async function handleUploadChange(file: any) {
   attachingFile.value = true;
   try {
     const res = await uploadAttachment(file.raw);
-    attachedFiles.value = [...attachedFiles.value, { filename: res.filename, text: res.text }];
-    ElMessage.success(t('tasks.uploadSuccess', { name: res.filename }));
+    attachedFiles.value = [...attachedFiles.value, res];
+    ElMessage.success(t('tasks.uploadSuccess', { name: res.originalName }));
   } catch (err) {
     ElMessage.error(t('tasks.uploadFailed', { name: (file as any)?.name || 'file' }));
   } finally {
@@ -178,7 +170,7 @@ function removeAttachment(idx: number) {
               class="attachment-tag"
               @close="removeAttachment(i)"
             >
-              {{ f.filename }}
+              {{ f.originalName }}
             </el-tag>
           </div>
           <div class="upload-row">
@@ -202,10 +194,6 @@ function removeAttachment(idx: number) {
             :placeholder="t('tasks.promptPlaceholder')"
           />
           <div class="form-hint">{{ t('tasks.promptHint') }}</div>
-          <!-- Preview with attachments -->
-          <div v-if="attachedFiles.length > 0" class="attachment-preview">
-            <pre>{{ promptPreview }}</pre>
-          </div>
         </el-form-item>
 
         <el-row :gutter="16">
@@ -374,23 +362,10 @@ function removeAttachment(idx: number) {
   font-size: 12px;
 }
 
-.attachment-preview {
-  margin-top: 8px;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.attachment-preview pre {
-  margin: 0;
-  padding: 10px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  font-family: var(--mono);
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  line-height: 1.5;
-  color: var(--text-h);
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
 }
 </style>

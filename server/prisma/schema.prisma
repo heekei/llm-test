@@ -46,6 +46,8 @@ model Task {
   maxIterations        Int?     // Max ReAct loop iterations (default 20)
   agentTimeoutSec      Int?     // Total agent run timeout in seconds (default 300)
   dockerImage          String?  // Override Docker image for sandbox
+  attachmentFiles       String?  // JSON array of { filename, originalName, mimeType }
+
   defaultTargets       String?  // JSON array of { providerId, providerName, modelId }
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

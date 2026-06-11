@@ -53,6 +53,12 @@ export class TasksService {
     if (data.tools !== undefined) {
       data.tools = data.tools ? JSON.stringify(data.tools) : null;
     }
+    // JSON-stringify attachmentFiles array if present
+    if (dto.attachmentFiles && dto.attachmentFiles.length > 0) {
+      data.attachmentFiles = JSON.stringify(dto.attachmentFiles);
+    } else {
+      delete data.attachmentFiles;
+    }
     return this.prisma.task.create({ data });
   }
 
