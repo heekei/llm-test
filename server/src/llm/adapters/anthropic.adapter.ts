@@ -439,9 +439,10 @@ export class AnthropicAdapter implements LlmAdapter {
     }
 
     // Extended thinking — enabled for both simple and agentic turns.
-    // In agentic mode, mapMessagesToAnthropic inserts redacted_thinking
-    // placeholders to satisfy providers that require thinking blocks
-    // alongside tool_use messages (e.g. Kimi).
+    // In agentic mode, mapMessagesToAnthropic inserts thinking
+    // placeholders (type: "thinking", thinking: "") to satisfy
+    // providers that require thinking blocks alongside tool_use
+    // messages (Anthropic, Kimi, DeepSeek in Anthropic mode).
     const thin =
       params.thinkingBudgetTokens != null &&
       params.thinkingBudgetTokens >= 1024;
