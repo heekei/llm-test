@@ -71,6 +71,7 @@ export class AgentService {
     const timeoutSec = task.agentTimeoutSec || 300;
     const trace: AgentTraceStep[] = [];
     let accumulatedText = '';
+    let accumulatedThinking = '';
     let containerId: string | null = null;
     let workspaceDir = '';
 
@@ -175,6 +176,7 @@ export class AgentService {
               timestamp: new Date().toISOString(),
             });
           } else if (block.type === 'thinking') {
+            accumulatedThinking += block.thinking;
             out.next({
               data: JSON.stringify({
                 type: 'thinking',
@@ -303,6 +305,7 @@ export class AgentService {
         data: {
           status: 'completed',
           output: accumulatedText,
+          thinkingOutput: accumulatedThinking || null,
           agentTrace: JSON.stringify(trace),
           agentStats: JSON.stringify(stats),
           sandboxId: containerId,
@@ -316,6 +319,7 @@ export class AgentService {
           type: 'complete',
           runId: run.id,
           output: accumulatedText,
+          thinkingOutput: accumulatedThinking || null,
           latencyMs: totalMs,
           totalMs,
         }),
