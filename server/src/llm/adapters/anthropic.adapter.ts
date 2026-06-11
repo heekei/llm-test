@@ -430,8 +430,8 @@ export class AnthropicAdapter implements LlmAdapter {
     }
 
     // Map tool definitions to Anthropic tools format
-    if (params.tools && params.tools.length > 0) {
-      body.tools = params.tools.map((t) => ({
+    if (hasTools) {
+      body.tools = params.tools!.map((t) => ({
         name: t.name,
         description: t.description,
         input_schema: t.inputSchema,
