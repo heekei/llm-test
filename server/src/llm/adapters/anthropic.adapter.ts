@@ -486,12 +486,15 @@ export class AnthropicAdapter implements LlmAdapter {
         }
       }
       // When extended thinking is enabled AND agentic tools are in use,
-      // assistant messages with tool_use must include a redacted_thinking
-      // placeholder (Anthropic spec). Providers like Kimi enforce this
-      // strictly for multi-turn tool-use conversations.
+      // assistant messages with tool_use must include a thinking placeholder.
       //
-      // For simple chat turns (hasTools=false) with tools, the conversation
-      // won't have multi-turn tool_use, so redacted_thinking is not required.
+      // We use type: "thinking" with an empty thinking string as this is the
+      // standard Anthropic format that all providers (Anthropic, Kimi, DeepSeek
+      // in Anthropic mode) accept. The older "redacted_thinking" type only works
+      // with Anthropic's own API and causes errors on DeepSeek.
+      //
+      // For simple chat turns (hasTools=false), multi-turn tool_use doesn't
+      // occur so no placeholder is needed.
       const thin =
         hasTools &&
         params.thinkingBudgetTokens != null &&
@@ -502,8 +505,8 @@ export class AnthropicAdapter implements LlmAdapter {
           content.unshift({ type: 'text', text: '' });
         }
         content.unshift({
-          type: 'redacted_thinking',
-          data: '',
+          type: 'thinking',
+          thinking: '',
         });
       } else if (msg.role === 'assistant' && hasToolUse) {
         // Non-thinking mode: just ensure a text block exists
