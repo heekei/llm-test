@@ -542,7 +542,21 @@ export class AnthropicAdapter implements LlmAdapter {
     const blocks: ContentBlock[] = [];
     for (const c of rawContent) {
       if (c.type === 'text') {
-        blocks.push({ type: 'text', text: c.text });
+        const text = c.text || '';
+        // Opus 4.7 adaptive thinking embeds <thinking>...</thinking> in text
+        const thinkingMatch = text.match(/<thinking>([\s\S]*?)<\/thinking>/);
+        if (thinkingMatch) {
+          const thinkingText = thinkingMatch[1].trim();
+          const remainingText = text.replace(/<thinking>[\s\S]*?<\/thinking>/, '').trim();
+          if (thinkingText) {
+            blocks.push({ type: 'thinking', thinking: thinkingText });
+          }
+          if (remainingText) {
+            blocks.push({ type: 'text', text: remainingText });
+          }
+        } else {
+          blocks.push({ type: 'text', text });
+        }
       } else if (c.type === 'thinking') {
         blocks.push({ type: 'thinking', thinking: c.thinking || '' });
       } else if (c.type === 'tool_use') {
