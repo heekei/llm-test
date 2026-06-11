@@ -139,3 +139,10 @@ export interface CreateTaskInput {
   dockerImage?: string;
   defaultTargets?: RunTarget[];
 }
+
+export interface UploadAttachmentResponse {
+  filename: string;
+  path: string;
+  text: string;
+  size: number;
+}

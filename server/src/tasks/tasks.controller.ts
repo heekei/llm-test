@@ -7,11 +7,42 @@ import {
   Body,
   Param,
   Res,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+  Logger,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { randomUUID } from 'crypto';
 import type { Response } from 'express';
+import * as fs from 'fs/promises';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto, UpdateTaskDto } from './dto/task.dto';
 import { RunTaskDto } from './dto/run-task.dto';
+
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_EXTENSIONS = new Set([
+  '.txt', '.md', '.csv', '.json', '.js', '.ts', '.jsx', '.tsx',
+  '.py', '.java', '.c', '.cpp', '.h', '.rs', '.go', '.rb', '.php',
+  '.html', '.css', '.xml', '.yaml', '.yml', '.toml', '.ini', '.cfg',
+  '.log', '.sql', '.sh', '.bat',
+  '.pdf',
+]);
+
+const TEXT_EXTENSIONS = new Set([
+  '.txt', '.md', '.csv', '.json', '.js', '.ts', '.jsx', '.tsx',
+  '.py', '.java', '.c', '.cpp', '.h', '.rs', '.go', '.rb', '.php',
+  '.html', '.css', '.xml', '.yaml', '.yml', '.toml', '.ini', '.cfg',
+  '.log', '.sql', '.sh', '.bat',
+]);
+
+function slugFilename(original: string): string {
+  const ext = extname(original).toLowerCase();
+  const base = original.slice(0, original.length - ext.length).replace(/[^a-zA-Z0-9_-]/g, '_');
+  return `${base}-${randomUUID()?.slice(0, 8) || Date.now().toString(36)}${ext}`;
+}
 
 @Controller('tasks')
 export class TasksController {
@@ -40,6 +71,61 @@ export class TasksController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.tasksService.remove(id);
+  }
+
+  @Post('upload-attachment')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: join(process.cwd(), 'uploads'),
+        filename: (_req, file, cb) => {
+          cb(null, slugFilename(file.originalname));
+        },
+      }),
+      limits: { fileSize: MAX_FILE_SIZE },
+      fileFilter: (_req, file, cb) => {
+        const ext = extname(file.originalname).toLowerCase();
+        if (!ALLOWED_EXTENSIONS.has(ext)) {
+          return cb(
+            new BadRequestException(`Unsupported file type: ${ext}`),
+            false,
+          );
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadAttachment(@UploadedFile() file: Express.Multer.File) {
+    if (!file) throw new BadRequestException('No file uploaded');
+
+    const ext = extname(file.originalname).toLowerCase();
+    let text = '';
+
+    if (TEXT_EXTENSIONS.has(ext)) {
+      text = await fs.readFile(file.path, 'utf-8');
+    } else if (ext === '.pdf') {
+      try {
+        const pdfParse = require('pdf-parse');
+        const buffer = await fs.readFile(file.path);
+        const data = await pdfParse(buffer);
+        text = data.text || '';
+      } catch (e) {
+        Logger.error(`Failed to parse PDF: ${e}`);
+        text = '[PDF parsing failed — unable to extract text]';
+      }
+    }
+
+    // Truncate text if too large
+    if (text.length > 500_000) {
+      text = text.slice(0, 500_000) + '\n\n[Content truncated at 500K characters]';
+    }
+
+    return {
+      filename: file.originalname,
+      path: file.path,
+      text,
+      size: file.size,
+    };
   }
 
   // POST + SSE: manually write SSE-format chunks to support a request body

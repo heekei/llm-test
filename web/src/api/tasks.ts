@@ -1,5 +1,5 @@
 import apiClient from './client';
-import type { Task, CreateTaskInput } from '../types';
+import type { Task, CreateTaskInput, UploadAttachmentResponse } from '../types';
 
 export async function listTasks(): Promise<Task[]> {
   const res = await apiClient.get<Task[]>('/tasks');
@@ -18,6 +18,15 @@ export async function createTask(input: CreateTaskInput): Promise<Task> {
 
 export async function deleteTask(id: string): Promise<void> {
   await apiClient.delete(`/tasks/${id}`);
+}
+
+export async function uploadAttachment(file: File): Promise<UploadAttachmentResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await apiClient.post<UploadAttachmentResponse>('/tasks/upload-attachment', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return res.data;
 }
 
 // SSE endpoint URL (consumed by useSse composable)

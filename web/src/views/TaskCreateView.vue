@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
-import { ArrowLeft } from '@element-plus/icons-vue';
+import { ArrowLeft, Upload } from '@element-plus/icons-vue';
 import type { RunTarget, CreateTaskInput } from '../types';
 import type { TaskTemplate } from '../data/templates';
-import { createTask } from '../api/tasks';
+import { createTask, uploadAttachment } from '../api/tasks';
 import ModelSelector from '../components/tasks/ModelSelector.vue';
 import TemplateSelector from '../components/tasks/TemplateSelector.vue';
 import { ElMessage } from 'element-plus';
@@ -32,6 +32,25 @@ const form = reactive<CreateTaskInput>({
 const targets = ref<RunTarget[]>([]);
 const saving = ref(false);
 const error = ref('');
+
+// Attachment state
+const attachingFile = ref(false);
+const attachedFiles = ref<{ filename: string; text: string }[]>([]);
+const uploadRef = ref<any>(null);
+
+const fileText = computed(() => {
+  if (attachedFiles.value.length === 0) return '';
+  return attachedFiles.value
+    .map((f) => `[附件内容: ${f.filename}]\n${f.text}\n[/附件内容]`)
+    .join('\n\n');
+});
+
+const promptPreview = computed(() => {
+  const prompt = form.prompt.trim();
+  if (!fileText.value) return prompt;
+  if (!prompt) return fileText.value;
+  return `${fileText.value}\n\n${prompt}`;
+});
 
 function applyTemplate(template: TaskTemplate) {
   form.title = template.title;
@@ -62,7 +81,7 @@ async function handleSubmit() {
   try {
     const payload: CreateTaskInput = {
       title: form.title.trim(),
-      prompt: form.prompt.trim(),
+      prompt: promptPreview.value || form.prompt.trim(),
     };
     if (form.description?.trim()) payload.description = form.description.trim();
     if (form.systemPrompt?.trim()) payload.systemPrompt = form.systemPrompt.trim();
@@ -88,6 +107,26 @@ async function handleSubmit() {
 
 function goBack() {
   router.push({ name: 'tasks' });
+}
+
+async function handleUploadChange(file: any) {
+  if (!file?.raw) return;
+  attachingFile.value = true;
+  try {
+    const res = await uploadAttachment(file.raw);
+    attachedFiles.value = [...attachedFiles.value, { filename: res.filename, text: res.text }];
+    ElMessage.success(t('tasks.uploadSuccess', { name: res.filename }));
+  } catch (err) {
+    ElMessage.error(t('tasks.uploadFailed', { name: (file as any)?.name || 'file' }));
+  } finally {
+    attachingFile.value = false;
+    // Clear el-upload internal state
+    uploadRef.value?.clearFiles?.();
+  }
+}
+
+function removeAttachment(idx: number) {
+  attachedFiles.value.splice(idx, 1);
 }
 </script>
 
@@ -129,6 +168,32 @@ function goBack() {
         </el-form-item>
 
         <el-form-item :label="t('tasks.promptLabel')" required>
+          <!-- Attachments -->
+          <div v-if="attachedFiles.length > 0" class="attachment-list">
+            <el-tag
+              v-for="(f, i) in attachedFiles"
+              :key="i"
+              closable
+              class="attachment-tag"
+              @close="removeAttachment(i)"
+            >
+              {{ f.filename }}
+            </el-tag>
+          </div>
+          <div class="upload-row">
+            <el-upload
+              ref="uploadRef"
+              :show-file-list="false"
+              :auto-upload="false"
+              :on-change="handleUploadChange"
+              :disabled="attachingFile"
+            >
+              <el-button size="small" :icon="Upload" :loading="attachingFile">
+                {{ attachingFile ? t('tasks.uploading') : t('tasks.uploadButton') }}
+              </el-button>
+            </el-upload>
+            <span class="form-hint" style="margin-top:0;line-height:32px">{{ t('tasks.uploadHint') }}</span>
+          </div>
           <el-input
             v-model="form.prompt"
             type="textarea"
@@ -136,6 +201,10 @@ function goBack() {
             :placeholder="t('tasks.promptPlaceholder')"
           />
           <div class="form-hint">{{ t('tasks.promptHint') }}</div>
+          <!-- Preview with attachments -->
+          <div v-if="attachedFiles.length > 0" class="attachment-preview">
+            <pre>{{ promptPreview }}</pre>
+          </div>
         </el-form-item>
 
         <el-row :gutter="16">
@@ -284,5 +353,43 @@ function goBack() {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.upload-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.attachment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.attachment-tag {
+  font-size: 12px;
+}
+
+.attachment-preview {
+  margin-top: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.attachment-preview pre {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
+  color: var(--text-h);
 }
 </style>
