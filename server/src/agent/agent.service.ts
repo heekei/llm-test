@@ -72,6 +72,8 @@ export class AgentService {
     const trace: AgentTraceStep[] = [];
     let accumulatedText = '';
     let accumulatedThinking = '';
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
     let containerId: string | null = null;
     let workspaceDir = '';
 
@@ -142,7 +144,7 @@ export class AgentService {
 
         // Call LLM
         const adapter = this.adapterFactory.get(provider.adapterType);
-        const blocks = await adapter.agentTurn({
+        const response = await adapter.agentTurn({
           apiBaseUrl: provider.apiBaseUrl,
           apiKey,
           modelId: target.modelId,
@@ -154,6 +156,12 @@ export class AgentService {
           thinkingBudgetTokens: task.thinkingBudgetTokens ?? undefined,
           reasoningEffort: task.reasoningEffort ?? undefined,
         });
+
+        const blocks = response.content;
+        if (response.usage) {
+          totalInputTokens += response.usage.inputTokens;
+          totalOutputTokens += response.usage.outputTokens;
+        }
 
         // Append assistant response to conversation
         messages.push({ role: 'assistant', content: blocks });
@@ -306,6 +314,8 @@ export class AgentService {
           status: 'completed',
           output: accumulatedText,
           thinkingOutput: accumulatedThinking || null,
+          tokensIn: totalInputTokens,
+          tokensOut: totalOutputTokens,
           agentTrace: JSON.stringify(trace),
           agentStats: JSON.stringify(stats),
           sandboxId: containerId,

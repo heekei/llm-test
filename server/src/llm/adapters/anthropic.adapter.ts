@@ -4,6 +4,7 @@ import {
   LlmAdapter,
   StreamChatParams,
   AgentChatParams,
+  AgentTurnResponse,
   ContentBlock,
 } from './adapter.interface';
 
@@ -380,7 +381,7 @@ export class AnthropicAdapter implements LlmAdapter {
 
   // ---- Agentic methods ----
 
-  async agentTurn(params: AgentChatParams): Promise<ContentBlock[]> {
+  async agentTurn(params: AgentChatParams): Promise<AgentTurnResponse> {
     const body = this.buildAgentBody(params, false);
     const base = this.normalizeBaseUrl(params.apiBaseUrl);
     const url = `${base}/v1/messages`;
@@ -401,7 +402,15 @@ export class AnthropicAdapter implements LlmAdapter {
     }
 
     const data = await response.json();
-    return this.parseAnthropicContent(data.content || []);
+    return {
+      content: this.parseAnthropicContent(data.content || []),
+      usage: data.usage
+        ? {
+            inputTokens: data.usage.input_tokens || 0,
+            outputTokens: data.usage.output_tokens || 0,
+          }
+        : undefined,
+    };
   }
 
   streamAgentTurn(params: AgentChatParams): Observable<string> {

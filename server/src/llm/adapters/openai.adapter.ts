@@ -4,6 +4,7 @@ import {
   LlmAdapter,
   StreamChatParams,
   AgentChatParams,
+  AgentTurnResponse,
   ContentBlock,
 } from './adapter.interface';
 
@@ -224,7 +225,7 @@ export class OpenAiAdapter implements LlmAdapter {
 
   // ---- Agentic methods ----
 
-  async agentTurn(params: AgentChatParams): Promise<ContentBlock[]> {
+  async agentTurn(params: AgentChatParams): Promise<AgentTurnResponse> {
     const base = params.apiBaseUrl.replace(/\/+$/, '');
     const url = base.endsWith('/v1')
       ? `${base}/chat/completions`
@@ -248,7 +249,15 @@ export class OpenAiAdapter implements LlmAdapter {
     const choice = data.choices?.[0];
     if (!choice) throw new Error('No choices in response');
 
-    return this.parseOpenAiResponse(choice);
+    return {
+      content: this.parseOpenAiResponse(choice),
+      usage: data.usage
+        ? {
+            inputTokens: data.usage.prompt_tokens || 0,
+            outputTokens: data.usage.completion_tokens || 0,
+          }
+        : undefined,
+    };
   }
 
   streamAgentTurn(params: AgentChatParams): Observable<string> {

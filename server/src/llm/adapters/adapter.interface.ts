@@ -77,6 +77,15 @@ export interface AgentChatParams {
   reasoningEffort?: string;
 }
 
+/** Response from an agentic turn with content and usage info */
+export interface AgentTurnResponse {
+  content: ContentBlock[];
+  usage?: {
+    inputTokens: number;
+    outputTokens: number;
+  };
+}
+
 export interface LlmAdapter {
   /** List available model IDs from the provider */
   listModels(apiBaseUrl: string, apiKey: string): Promise<string[]>;
@@ -94,9 +103,9 @@ export interface LlmAdapter {
 
   /**
    * Non-streaming agentic turn. Sends the full conversation + tool definitions
-   * and returns an array of content blocks (text and/or tool_use).
+   * and returns an array of content blocks (text and/or tool_use) with usage.
    */
-  agentTurn(params: AgentChatParams): Promise<ContentBlock[]>;
+  agentTurn(params: AgentChatParams): Promise<AgentTurnResponse>;
 
   /**
    * Streaming agentic turn. Emits JSON envelopes:
