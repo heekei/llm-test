@@ -488,21 +488,32 @@ export class AnthropicAdapter implements LlmAdapter {
       }
       // When extended thinking is enabled, assistant messages with tool_use
       // must include at least one text content block (can be empty string).
+      // We also need thinking/redacted_thinking placeholders for providers
+      // that require reasoning content alongside every tool_use message.
+      const thin = params.thinkingBudgetTokens && params.thinkingBudgetTokens >= 1024;
       if (msg.role === 'assistant' && hasToolUse) {
         const hasText = content.some((c) => c.type === 'text');
         if (!hasText) {
           content.unshift({ type: 'text', text: '' });
         }
+        // Insert redacted_thinking placeholder required by Anthropic spec
+        // for multi-turn tool use conversations with extended thinking.
+        if (thin) {
+          content.unshift({
+            type: 'redacted_thinking',
+            data: '',
+          });
+        }
       }
-      // Some providers (Kimi) require that assistant messages containing
-      // tool_use blocks also include a reasoning_content / thinking block
-      // when extended thinking was enabled. Since we don't persist thinking
-      // blocks across turns, strip tool_use-only assistant messages
-      // when extended thinking is active to avoid API errors.
+      // In agentic mode, if extended thinking is on, rewrite tool_use
+      // assistant messages as user notes to avoid provider errors.
+      // (Kimi requires thinking for every tool_use; we can't persist thinking
+      // blocks across turns.)
       if (
         msg.role === 'assistant' &&
         hasToolUse &&
-        !hasTools
+        hasTools &&
+        thin
       ) {
         // Replace tool_use blocks with a text note to keep conversation flowing
         const toolNames = content
