@@ -108,10 +108,12 @@ export class AgentService {
       let userMessage = task.prompt;
       if (copyResult && copyResult.length > 0) {
         const fileList = copyResult
-          .map((f) => `  - ${f} (路径: /workspace/${f})`)
+          .map((f) => `  - ${f} (use read_file with path "/workspace/${f}")`)
           .join('\n');
         userMessage =
-          `\n\n---\n以下文件已放入 Docker 沙箱工作目录 /workspace/，你可以用 read_file 工具读取它们：\n\n${fileList}\n\n请先读取这些文件的内容，然后完成用户的任务。\n---\n\n` +
+          `\n\n---\nThe following files have been placed in the Docker sandbox workspace at /workspace/. ` +
+          `Before proceeding with the task, please read each file using the read_file tool. ` +
+          `Available files:\n\n${fileList}\n\nPlease read these files first, then complete the user's request.\n---\n\n` +
           userMessage;
       }
 
