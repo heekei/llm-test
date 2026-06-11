@@ -87,6 +87,23 @@ export class CreateTaskDto {
   @ValidateNested({ each: true })
   @Type(() => DefaultTargetInput)
   defaultTargets?: DefaultTargetInput[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentFileInput)
+  attachmentFiles?: AttachmentFileInput[];
+}
+
+export class AttachmentFileInput {
+  @IsString()
+  filename: string;
+
+  @IsString()
+  originalName: string;
+
+  @IsString()
+  mimeType: string;
 }
 
 export class UpdateTaskDto {

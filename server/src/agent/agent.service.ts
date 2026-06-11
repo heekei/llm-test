@@ -99,15 +99,15 @@ export class AgentService {
         );
       }
 
-      // Extract [附件内容: filename]...[/附件内容] blocks from prompt and write them
-      // as real files into the workspace so the agent can read them with tools.
-      const promptText = await this.extractAndWriteAttachments(task.prompt, workspaceDir);
+      // Copy uploaded attachment files into the workspace so the agent can
+      // read them with file tools.
+      await this.copyAttachments(task, workspaceDir);
 
       // Initialize conversation
       const messages: ConversationMessage[] = [
         {
           role: 'user',
-          content: [{ type: 'text', text: promptText }],
+          content: [{ type: 'text', text: task.prompt }],
         },
       ];
 
@@ -332,45 +332,46 @@ export class AgentService {
   }
 
   /**
-   * Parse [附件内容: filename]...[/附件内容] blocks from the prompt,
-   * write each block's body to workspaceDir/filename, and return the prompt
-   * with blocks stripped (replaced by a short note so the model knows the
-   * files exist on disk).
-   *
-   * Only active in agentic mode where the workspace is mounted into the sandbox.
+   * Copy uploaded attachment files from server/uploads/ into the
+   * sandbox workspace directory. Parses task.attachmentFiles (JSON array)
+   * to find the stored paths and copies each file to workspaceDir.
    */
-  private async extractAndWriteAttachments(
-    prompt: string,
-    workspaceDir: string,
-  ): Promise<string> {
-    const ATTACH_RE =
-      /\[附件内容:\s*([^\]]+)\]\s*\n([\s\S]*?)\n\s*\[\/附件内容\]/g;
-    let m: RegExpExecArray | null;
-    const files: string[] = [];
+  private async copyAttachments(task: any, workspaceDir: string) {
+    if (!task.attachmentFiles) return;
 
-    // eslint-disable-next-line no-cond-assign
-    while ((m = ATTACH_RE.exec(prompt)) !== null) {
-      const filename = m[1].trim();
-      const content = m[2];
-      files.push(filename);
-      // Write to workspace (fire-and-forget; errors are logged but not fatal)
-      fs.writeFile(path.join(workspaceDir, filename), content, 'utf-8').catch(
-        (err) => {
-          Logger.warn(
-            `Failed to write attachment ${filename} to workspace: ${err}`,
-          );
-        },
-      );
+    let attachments: { filename: string; originalName: string; mimeType: string }[];
+    try {
+      attachments =
+        typeof task.attachmentFiles === 'string'
+          ? JSON.parse(task.attachmentFiles)
+          : task.attachmentFiles;
+    } catch {
+      return;
     }
 
-    if (files.length === 0) return Promise.resolve(prompt);
+    if (!Array.isArray(attachments) || attachments.length === 0) return;
 
-    // Strip attachment blocks and add a note
-    const stripped = prompt.replace(ATTACH_RE, '').trim();
-    const note = `[附件已写入工作目录: ${files.join(
-      ', ',
-    )}。你可以用 read_file 工具读取它们。]\n\n`;
-    return Promise.resolve(note + stripped);
+    const uploadsDir = path.join(process.cwd(), 'uploads');
+    const names: string[] = [];
+
+    for (const att of attachments) {
+      const srcPath = path.join(uploadsDir, att.filename);
+      try {
+        await fs.access(srcPath);
+        await fs.copyFile(srcPath, path.join(workspaceDir, att.originalName));
+        names.push(att.originalName);
+      } catch (err) {
+        Logger.warn(
+          `Cannot copy attachment ${att.originalName} (${att.filename}) to workspace: ${err}`,
+        );
+      }
+    }
+
+    if (names.length > 0) {
+      Logger.log(
+        `Copied ${names.length} attachment(s) to workspace: ${names.join(', ')}`,
+      );
+    }
   }
 
   /**

@@ -138,11 +138,19 @@ export interface CreateTaskInput {
   agentTimeoutSec?: number;
   dockerImage?: string;
   defaultTargets?: RunTarget[];
+  attachmentFiles?: AttachmentFile[];
+}
+
+export interface AttachmentFile {
+  filename: string;
+  originalName: string;
+  mimeType: string;
 }
 
 export interface UploadAttachmentResponse {
   filename: string;
+  originalName: string;
+  mimeType: string;
   path: string;
-  text: string;
   size: number;
 }
