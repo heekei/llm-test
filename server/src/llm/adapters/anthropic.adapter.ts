@@ -489,6 +489,7 @@ export class AnthropicAdapter implements LlmAdapter {
       // must include a redacted_thinking placeholder (Anthropic spec).
       // Providers like Kimi enforce this strictly for multi-turn conversations.
       const thin =
+        hasTools &&
         params.thinkingBudgetTokens != null &&
         params.thinkingBudgetTokens >= 1024;
       if (msg.role === 'assistant' && hasToolUse && thin) {
