@@ -73,15 +73,16 @@ async function handleSubmit() {
     ElMessage.warning(t('tasks.titleRequired'));
     return;
   }
-  if (!form.prompt.trim()) {
+  if (!promptPreview.value) {
     ElMessage.warning(t('tasks.promptRequired'));
     return;
   }
   saving.value = true;
   try {
+    const finalPrompt = promptPreview.value || form.prompt.trim();
     const payload: CreateTaskInput = {
       title: form.title.trim(),
-      prompt: promptPreview.value || form.prompt.trim(),
+      prompt: finalPrompt,
     };
     if (form.description?.trim()) payload.description = form.description.trim();
     if (form.systemPrompt?.trim()) payload.systemPrompt = form.systemPrompt.trim();
