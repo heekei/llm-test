@@ -166,7 +166,8 @@ export class AgentService {
         // Append assistant response to conversation
         messages.push({ role: 'assistant', content: blocks });
 
-        // Emit text and thinking blocks as SSE deltas
+        // Process blocks in order to preserve timing
+        const toolUses: ContentBlockToolUse[] = [];
         for (const block of blocks) {
           if (block.type === 'text') {
             accumulatedText += block.text;
@@ -198,13 +199,11 @@ export class AgentService {
               content: block.thinking,
               timestamp: new Date().toISOString(),
             });
+          } else if (block.type === 'tool_use') {
+            toolUses.push(block);
           }
         }
 
-        // Extract tool_use blocks
-        const toolUses = blocks.filter(
-          (b): b is ContentBlockToolUse => b.type === 'tool_use',
-        );
         if (toolUses.length === 0) {
           // No more tool calls — agent is done
           stopped = true;
