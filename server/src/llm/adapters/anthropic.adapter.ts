@@ -485,9 +485,13 @@ export class AnthropicAdapter implements LlmAdapter {
           });
         }
       }
-      // When extended thinking is enabled, assistant messages with tool_use
-      // must include a redacted_thinking placeholder (Anthropic spec).
-      // Providers like Kimi enforce this strictly for multi-turn conversations.
+      // When extended thinking is enabled AND agentic tools are in use,
+      // assistant messages with tool_use must include a redacted_thinking
+      // placeholder (Anthropic spec). Providers like Kimi enforce this
+      // strictly for multi-turn tool-use conversations.
+      //
+      // For simple chat turns (hasTools=false) with tools, the conversation
+      // won't have multi-turn tool_use, so redacted_thinking is not required.
       const thin =
         hasTools &&
         params.thinkingBudgetTokens != null &&
