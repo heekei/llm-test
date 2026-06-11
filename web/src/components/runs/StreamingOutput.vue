@@ -22,6 +22,10 @@ const { t } = useI18n();
 
 const thinkingExpanded = ref(true);
 
+const hasThinkingInTrace = computed(() =>
+  props.agentTrace?.some(step => step.kind === 'thinking'),
+);
+
 const renderedMarkdown = computed(() => {
   if (!props.content && props.status === 'pending') {
     return `<p class="placeholder">${t('streaming.waiting')}</p>`;
@@ -82,8 +86,8 @@ marked.setOptions({
 
       <el-alert v-if="error" :title="error" type="error" show-icon />
 
-      <!-- Thinking/Reasoning block -->
-      <div v-if="thinkingContent" class="thinking-section">
+      <!-- Thinking/Reasoning block (only for simple mode; agentic mode shows thinking in trace) -->
+      <div v-if="thinkingContent && !hasThinkingInTrace" class="thinking-section">
         <el-button
           class="thinking-toggle-btn"
           @click="thinkingExpanded = !thinkingExpanded"

@@ -160,6 +160,17 @@ export const useRunStore = defineStore('run', () => {
     return isStreaming.value;
   }
 
+  function getPanelByRunId(taskId: string, runId: string): RunPanel | undefined {
+    const run = activeRuns[taskId];
+    if (!run) return undefined;
+    for (const key in run.panels) {
+      if (run.panels[key].runId === runId) {
+        return run.panels[key];
+      }
+    }
+    return undefined;
+  }
+
   // ---- Agentic evaluation methods ----
 
   function appendAgentTrace(taskId: string, runId: string, step: AgentTraceStep) {
@@ -202,5 +213,6 @@ export const useRunStore = defineStore('run', () => {
     isTaskRunning,
     appendAgentTrace,
     setAgentIteration,
+    getPanelByRunId,
   };
 });

@@ -84,9 +84,27 @@ const { startStream, stopStream } = useSse({
   },
   onThinking: (runId, content) => {
     runStore.appendThinking(taskId.value, runId, content);
+    const panel = runStore.getPanelByRunId(taskId.value, runId);
+    if (panel && panel.currentIteration > 0) {
+      runStore.appendAgentTrace(taskId.value, runId, {
+        iteration: panel.currentIteration,
+        kind: 'thinking',
+        content,
+        timestamp: new Date().toISOString(),
+      });
+    }
   },
   onDelta: (runId, content) => {
     runStore.appendDelta(taskId.value, runId, content);
+    const panel = runStore.getPanelByRunId(taskId.value, runId);
+    if (panel && panel.currentIteration > 0) {
+      runStore.appendAgentTrace(taskId.value, runId, {
+        iteration: panel.currentIteration,
+        kind: 'llm_text',
+        content,
+        timestamp: new Date().toISOString(),
+      });
+    }
   },
   onComplete: (runId, data) => {
     runStore.completeRun(taskId.value, runId, data.output, data.latencyMs, data.thinkingOutput);
@@ -552,7 +570,7 @@ onUnmounted(() => {
               </div>
             </div>
             <div v-if="expandedRunId === r.id" class="run-output">
-              <div v-if="r.thinkingOutput" class="thinking-section-past">
+              <div v-if="r.thinkingOutput && !(r.agentTrace?.some((s: any) => s.kind === 'thinking'))" class="thinking-section-past">
                 <el-button
                   text
                   class="thinking-toggle"
