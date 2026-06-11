@@ -99,11 +99,15 @@ export class AgentService {
         );
       }
 
+      // Extract [附件内容: filename]...[/附件内容] blocks from prompt and write them
+      // as real files into the workspace so the agent can read them with tools.
+      const promptText = await this.extractAndWriteAttachments(task.prompt, workspaceDir);
+
       // Initialize conversation
       const messages: ConversationMessage[] = [
         {
           role: 'user',
-          content: [{ type: 'text', text: task.prompt }],
+          content: [{ type: 'text', text: promptText }],
         },
       ];
 
@@ -325,6 +329,48 @@ export class AgentService {
     } catch {
       return null;
     }
+  }
+
+  /**
+   * Parse [附件内容: filename]...[/附件内容] blocks from the prompt,
+   * write each block's body to workspaceDir/filename, and return the prompt
+   * with blocks stripped (replaced by a short note so the model knows the
+   * files exist on disk).
+   *
+   * Only active in agentic mode where the workspace is mounted into the sandbox.
+   */
+  private async extractAndWriteAttachments(
+    prompt: string,
+    workspaceDir: string,
+  ): Promise<string> {
+    const ATTACH_RE =
+      /\[附件内容:\s*([^\]]+)\]\s*\n([\s\S]*?)\n\s*\[\/附件内容\]/g;
+    let m: RegExpExecArray | null;
+    const files: string[] = [];
+
+    // eslint-disable-next-line no-cond-assign
+    while ((m = ATTACH_RE.exec(prompt)) !== null) {
+      const filename = m[1].trim();
+      const content = m[2];
+      files.push(filename);
+      // Write to workspace (fire-and-forget; errors are logged but not fatal)
+      fs.writeFile(path.join(workspaceDir, filename), content, 'utf-8').catch(
+        (err) => {
+          Logger.warn(
+            `Failed to write attachment ${filename} to workspace: ${err}`,
+          );
+        },
+      );
+    }
+
+    if (files.length === 0) return Promise.resolve(prompt);
+
+    // Strip attachment blocks and add a note
+    const stripped = prompt.replace(ATTACH_RE, '').trim();
+    const note = `[附件已写入工作目录: ${files.join(
+      ', ',
+    )}。你可以用 read_file 工具读取它们。]\n\n`;
+    return Promise.resolve(note + stripped);
   }
 
   /**
