@@ -440,10 +440,10 @@ export class AnthropicAdapter implements LlmAdapter {
 
     // Extended thinking — disabled in agentic mode because the thinking
     // block from the model cannot be carried forward in multi-turn tool-use
-    // conversations (some providers like Kimi reject tool_use messages
-    // without a preceding thinking block).
+    // conversations (providers like Kimi require thinking for every
+    // assistant tool_use message).
     if (
-      !params.tools &&
+      !hasTools &&
       params.thinkingBudgetTokens &&
       params.thinkingBudgetTokens >= 1024
     ) {
