@@ -487,48 +487,26 @@ export class AnthropicAdapter implements LlmAdapter {
         }
       }
       // When extended thinking is enabled, assistant messages with tool_use
-      // must include at least one text content block (can be empty string).
-      // We also need thinking/redacted_thinking placeholders for providers
-      // that require reasoning content alongside every tool_use message.
-      const thin = params.thinkingBudgetTokens && params.thinkingBudgetTokens >= 1024;
-      if (msg.role === 'assistant' && hasToolUse) {
+      // must include a redacted_thinking placeholder (Anthropic spec).
+      // Providers like Kimi enforce this strictly for multi-turn conversations.
+      const thin =
+        params.thinkingBudgetTokens != null &&
+        params.thinkingBudgetTokens >= 1024;
+      if (msg.role === 'assistant' && hasToolUse && thin) {
         const hasText = content.some((c) => c.type === 'text');
         if (!hasText) {
           content.unshift({ type: 'text', text: '' });
         }
-        // Insert redacted_thinking placeholder required by Anthropic spec
-        // for multi-turn tool use conversations with extended thinking.
-        if (thin) {
-          content.unshift({
-            type: 'redacted_thinking',
-            data: '',
-          });
+        content.unshift({
+          type: 'redacted_thinking',
+          data: '',
+        });
+      } else if (msg.role === 'assistant' && hasToolUse) {
+        // Non-thinking mode: just ensure a text block exists
+        const hasText = content.some((c) => c.type === 'text');
+        if (!hasText) {
+          content.unshift({ type: 'text', text: '' });
         }
-      }
-      // In agentic mode, if extended thinking is on, rewrite tool_use
-      // assistant messages as user notes to avoid provider errors.
-      // (Kimi requires thinking for every tool_use; we can't persist thinking
-      // blocks across turns.)
-      if (
-        msg.role === 'assistant' &&
-        hasToolUse &&
-        hasTools &&
-        thin
-      ) {
-        // Replace tool_use blocks with a text note to keep conversation flowing
-        const toolNames = content
-          .filter((c) => c.type === 'tool_use')
-          .map((c) => c.name)
-          .join(', ');
-        return {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `[系统提示: 上一轮调用了工具 ${toolNames}，结果已处理。请继续。]`,
-            },
-          ],
-        };
       }
       return { role: msg.role, content };
     });
