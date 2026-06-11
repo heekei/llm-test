@@ -207,7 +207,7 @@ export class AnthropicAdapter implements LlmAdapter {
     if (params.thinkingBudgetTokens && params.thinkingBudgetTokens >= 1024) {
       body.thinking = {
         type: 'enabled',
-        budget_tokens: Math.min(params.thinkingBudgetTokens, params.maxTokens),
+        budget_tokens: Math.min(params.thinkingBudgetTokens!, params.maxTokens),
       };
       // thinking budget must be less than max_tokens, so bump max_tokens if needed
       if (body.thinking.budget_tokens >= params.maxTokens) {
@@ -448,7 +448,7 @@ export class AnthropicAdapter implements LlmAdapter {
     if (thin) {
       body.thinking = {
         type: 'enabled',
-        budget_tokens: Math.min(params.thinkingBudgetTokens, params.maxTokens),
+        budget_tokens: Math.min(params.thinkingBudgetTokens!, params.maxTokens),
       };
       if (body.thinking.budget_tokens >= params.maxTokens) {
         body.max_tokens = body.thinking.budget_tokens + 1024;
