@@ -446,12 +446,20 @@ export class AnthropicAdapter implements LlmAdapter {
       params.thinkingBudgetTokens != null &&
       params.thinkingBudgetTokens >= 1024;
     if (thin) {
-      body.thinking = {
-        type: 'enabled',
-        budget_tokens: Math.min(params.thinkingBudgetTokens!, params.maxTokens),
-      };
-      if (body.thinking.budget_tokens >= params.maxTokens) {
-        body.max_tokens = body.thinking.budget_tokens + 1024;
+      // Opus 4.7+ uses adaptive thinking with output_config.effort
+      // Older models (Sonnet 4, Opus 4.6) use thinking.type=enabled
+      const isOpus47 = params.modelId.includes('opus-4-7');
+      if (isOpus47) {
+        body.thinking = { type: 'adaptive' };
+        body.output_config = { effort: 'high' };
+      } else {
+        body.thinking = {
+          type: 'enabled',
+          budget_tokens: Math.min(params.thinkingBudgetTokens!, params.maxTokens),
+        };
+        if (body.thinking.budget_tokens >= params.maxTokens) {
+          body.max_tokens = body.thinking.budget_tokens + 1024;
+        }
       }
     }
 
@@ -526,6 +534,8 @@ export class AnthropicAdapter implements LlmAdapter {
     for (const c of rawContent) {
       if (c.type === 'text') {
         blocks.push({ type: 'text', text: c.text });
+      } else if (c.type === 'thinking') {
+        blocks.push({ type: 'thinking', thinking: c.thinking || '' });
       } else if (c.type === 'tool_use') {
         blocks.push({
           type: 'tool_use',
