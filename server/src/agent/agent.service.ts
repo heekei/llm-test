@@ -391,6 +391,7 @@ export class AgentService {
       );
     }
     return names.length > 0 ? names : null;
+  }
 
   /**
    * Execute a command locally (fallback when Docker is not available).
