@@ -437,8 +437,15 @@ export class AnthropicAdapter implements LlmAdapter {
       }));
     }
 
-    // Extended thinking
-    if (params.thinkingBudgetTokens && params.thinkingBudgetTokens >= 1024) {
+    // Extended thinking — disabled in agentic mode because the thinking
+    // block from the model cannot be carried forward in multi-turn tool-use
+    // conversations (some providers like Kimi reject tool_use messages
+    // without a preceding thinking block).
+    if (
+      !params.tools &&
+      params.thinkingBudgetTokens &&
+      params.thinkingBudgetTokens >= 1024
+    ) {
       body.thinking = {
         type: 'enabled',
         budget_tokens: Math.min(params.thinkingBudgetTokens, params.maxTokens),
