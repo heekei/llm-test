@@ -104,13 +104,14 @@ export class AgentService {
       const copyResult = await this.copyAttachments(task, workspaceDir);
 
       // Build the user message. If attachments were copied, tell the model
-      // what's available so it doesn't think no files were provided.
+      // what files are available in the workspace and how to read them.
       let userMessage = task.prompt;
       if (copyResult && copyResult.length > 0) {
-        const fileList = copyResult.join(', ');
+        const fileList = copyResult
+          .map((f) => `  - ${f} (路径: /workspace/${f})`)
+          .join('\n');
         userMessage =
-          `[附件文件已放入工作目录: ${fileList}]\n\n` +
-          `你可以用 read_file 工具读取这些文件。\n\n` +
+          `\n\n---\n以下文件已放入 Docker 沙箱工作目录 /workspace/，你可以用 read_file 工具读取它们：\n\n${fileList}\n\n请先读取这些文件的内容，然后完成用户的任务。\n---\n\n` +
           userMessage;
       }
 
