@@ -108,12 +108,14 @@ export class AgentService {
       let userMessage = task.prompt;
       if (copyResult && copyResult.length > 0) {
         const fileList = copyResult
-          .map((f) => `- ${f} (full path: /workspace/${f})`)
+          .map((f) => `- \`/workspace/${f}\``)
           .join('\n');
         userMessage =
+          `\n\n---\n` +
           `[System: The following files are in the /workspace/ directory. ` +
           `Use the read_file tool to read them before answering.]\n\n` +
-          `${fileList}\n\n` +
+          `${fileList}\n` +
+          `---\n\n` +
           userMessage;
       }
 
