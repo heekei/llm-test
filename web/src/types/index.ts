@@ -23,7 +23,7 @@ export interface ModelInfo {
 
 export interface AgentTraceStep {
   iteration: number;
-  kind: 'llm_text' | 'tool_call' | 'tool_result';
+  kind: 'llm_text' | 'thinking' | 'tool_call' | 'tool_result';
   content: string;
   toolName?: string;
   toolCallId?: string;
