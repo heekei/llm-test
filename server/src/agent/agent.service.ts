@@ -108,12 +108,12 @@ export class AgentService {
       let userMessage = task.prompt;
       if (copyResult && copyResult.length > 0) {
         const fileList = copyResult
-          .map((f) => `  - ${f} (use read_file with path "/workspace/${f}")`)
+          .map((f) => `- ${f} (full path: /workspace/${f})`)
           .join('\n');
         userMessage =
-          `\n\n---\nThe following files have been placed in the Docker sandbox workspace at /workspace/. ` +
-          `Before proceeding with the task, please read each file using the read_file tool. ` +
-          `Available files:\n\n${fileList}\n\nPlease read these files first, then complete the user's request.\n---\n\n` +
+          `[System: The following files are in the /workspace/ directory. ` +
+          `Use the read_file tool to read them before answering.]\n\n` +
+          `${fileList}\n\n` +
           userMessage;
       }
 
