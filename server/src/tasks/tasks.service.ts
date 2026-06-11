@@ -63,20 +63,25 @@ export class TasksService {
   }
 
   private parseDefaultTargets(task: any): any {
+    const result = { ...task };
     if (task.defaultTargets && typeof task.defaultTargets === 'string') {
       try {
-        task = { ...task, defaultTargets: JSON.parse(task.defaultTargets) };
+        result.defaultTargets = JSON.parse(task.defaultTargets);
       } catch {
-        task = { ...task, defaultTargets: null };
+        result.defaultTargets = null;
+      }
+    }
+    if (task.attachmentFiles && typeof task.attachmentFiles === 'string') {
+      try {
+        result.attachmentFiles = JSON.parse(task.attachmentFiles);
+      } catch {
+        result.attachmentFiles = null;
       }
     }
     if (task.runs) {
-      task = {
-        ...task,
-        runs: task.runs.map((run: any) => this.parseRunAiScores(run)),
-      };
+      result.runs = task.runs.map((run: any) => this.parseRunAiScores(run));
     }
-    return task;
+    return result;
   }
 
   private parseRunAiScores(run: any): any {
