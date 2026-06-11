@@ -79,6 +79,17 @@ function formatInput(input: object | undefined): string {
             </div>
           </template>
 
+          <!-- Thinking -->
+          <template v-else-if="step.kind === 'thinking'">
+            <div class="step-icon thinking-icon">
+              <el-icon><Document /></el-icon>
+            </div>
+            <div class="step-body">
+              <div class="step-label">{{ $t('agentTrace.thinking') }}</div>
+              <div class="step-content thinking-content">{{ truncate(step.content, 500) }}</div>
+            </div>
+          </template>
+
           <!-- Tool Call -->
           <template v-else-if="step.kind === 'tool_call'">
             <div class="step-icon call-icon">
@@ -193,6 +204,7 @@ function formatInput(input: object | undefined): string {
 }
 
 .text-icon { background: var(--primary-bg); color: var(--primary); }
+.thinking-icon { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
 .call-icon { background: rgba(217, 119, 6, 0.1); color: var(--warning); }
 .result-icon { background: var(--success-bg); color: var(--success); }
 .error-icon { background: var(--error-bg); color: var(--error); }
@@ -233,6 +245,15 @@ function formatInput(input: object | undefined): string {
   word-break: break-word;
   max-height: 200px;
   overflow-y: auto;
+}
+
+.thinking-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+  opacity: 0.8;
+  font-style: italic;
 }
 
 .error-content {
