@@ -504,10 +504,12 @@ export class AnthropicAdapter implements LlmAdapter {
         if (!hasText) {
           content.unshift({ type: 'text', text: '' });
         }
-        content.unshift({
-          type: 'thinking',
-          thinking: '',
-        });
+        if (thin) {
+          content.unshift({
+            type: 'thinking',
+            thinking: '',
+          });
+        }
       } else if (msg.role === 'assistant' && hasToolUse) {
         // Non-thinking mode: just ensure a text block exists
         const hasText = content.some((c) => c.type === 'text');
