@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { AgentTraceStep } from '../../types';
-import { Document, Tools, Finished, CircleCheck, CircleClose } from '@element-plus/icons-vue';
+import { Document, Tools, CircleCheck, CircleClose } from '@element-plus/icons-vue';
 
 const props = defineProps<{
   trace: AgentTraceStep[];
@@ -68,25 +68,29 @@ function formatInput(input: object | undefined): string {
           :key="i"
           :class="['trace-step', step.kind]"
         >
-          <!-- LLM Text -->
-          <template v-if="step.kind === 'llm_text'">
-            <div class="step-icon text-icon">
-              <el-icon><Document /></el-icon>
-            </div>
-            <div class="step-body">
-              <div class="step-label">{{ $t('agentTrace.response') }}</div>
-              <div class="step-content text-content">{{ truncate(step.content, 500) }}</div>
-            </div>
-          </template>
-
           <!-- Thinking -->
-          <template v-else-if="step.kind === 'thinking'">
+          <template v-if="step.kind === 'thinking'">
             <div class="step-icon thinking-icon">
               <el-icon><Document /></el-icon>
             </div>
             <div class="step-body">
-              <div class="step-label">{{ $t('agentTrace.thinking') }}</div>
-              <div class="step-content thinking-content">{{ truncate(step.content, 500) }}</div>
+              <details class="thinking-details">
+                <summary class="step-label">{{ t('agentTrace.thinking') }}</summary>
+                <div class="thinking-content">{{ step.content }}</div>
+              </details>
+            </div>
+          </template>
+
+          <!-- LLM Text -->
+          <template v-else-if="step.kind === 'llm_text'">
+            <div class="step-icon text-icon">
+              <el-icon><Document /></el-icon>
+            </div>
+            <div class="step-body">
+              <details class="text-details">
+                <summary class="step-label">{{ t('agentTrace.response') }}</summary>
+                <div class="text-content">{{ step.content }}</div>
+              </details>
             </div>
           </template>
 
@@ -203,8 +207,8 @@ function formatInput(input: object | undefined): string {
   margin-top: 1px;
 }
 
-.text-icon { background: var(--primary-bg); color: var(--primary); }
 .thinking-icon { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; }
+.text-icon { background: var(--primary-bg); color: var(--primary); }
 .call-icon { background: rgba(217, 119, 6, 0.1); color: var(--warning); }
 .result-icon { background: var(--success-bg); color: var(--success); }
 .error-icon { background: var(--error-bg); color: var(--error); }
@@ -240,20 +244,62 @@ function formatInput(input: object | undefined): string {
   color: var(--text-h);
 }
 
-.text-content {
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 200px;
-  overflow-y: auto;
+/* Thinking: collapsible with full content */
+.thinking-details summary,
+.text-details summary {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.thinking-details summary::before,
+.text-details summary::before {
+  content: '\25B6';
+  font-size: 8px;
+  transition: transform 0.2s;
+}
+
+.thinking-details[open] summary::before,
+.text-details[open] summary::before {
+  transform: rotate(90deg);
 }
 
 .thinking-content {
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
-  opacity: 0.8;
+  padding: 8px;
+  margin-top: 4px;
+  background: rgba(139, 92, 246, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.12);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
   font-style: italic;
+}
+
+.text-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 8px;
+  margin-top: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-h);
 }
 
 .error-content {
