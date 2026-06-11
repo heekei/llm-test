@@ -454,10 +454,12 @@ export class AnthropicAdapter implements LlmAdapter {
   private mapMessagesToAnthropic(messages: ConversationMessage[]): any[] {
     return messages.map((msg) => {
       const content: any[] = [];
+      let hasToolUse = false;
       for (const block of msg.content) {
         if (block.type === 'text') {
           content.push({ type: 'text', text: block.text });
         } else if (block.type === 'tool_use') {
+          hasToolUse = true;
           content.push({
             type: 'tool_use',
             id: block.id,
@@ -471,6 +473,14 @@ export class AnthropicAdapter implements LlmAdapter {
             content: block.content,
             is_error: block.is_error,
           });
+        }
+      }
+      // When extended thinking is enabled, assistant messages with tool_use
+      // must include at least one text content block (can be empty string).
+      if (msg.role === 'assistant' && hasToolUse) {
+        const hasText = content.some((c) => c.type === 'text');
+        if (!hasText) {
+          content.unshift({ type: 'text', text: '' });
         }
       }
       return { role: msg.role, content };
