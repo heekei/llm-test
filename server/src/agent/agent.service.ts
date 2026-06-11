@@ -101,13 +101,24 @@ export class AgentService {
 
       // Copy uploaded attachment files into the workspace so the agent can
       // read them with file tools.
-      await this.copyAttachments(task, workspaceDir);
+      const copyResult = await this.copyAttachments(task, workspaceDir);
+
+      // Build the user message. If attachments were copied, tell the model
+      // what's available so it doesn't think no files were provided.
+      let userMessage = task.prompt;
+      if (copyResult && copyResult.length > 0) {
+        const fileList = copyResult.join(', ');
+        userMessage =
+          `[附件文件已放入工作目录: ${fileList}]\n\n` +
+          `你可以用 read_file 工具读取这些文件。\n\n` +
+          userMessage;
+      }
 
       // Initialize conversation
       const messages: ConversationMessage[] = [
         {
           role: 'user',
-          content: [{ type: 'text', text: task.prompt }],
+          content: [{ type: 'text', text: userMessage }],
         },
       ];
 
@@ -336,8 +347,11 @@ export class AgentService {
    * sandbox workspace directory. Parses task.attachmentFiles (JSON array)
    * to find the stored paths and copies each file to workspaceDir.
    */
-  private async copyAttachments(task: any, workspaceDir: string) {
-    if (!task.attachmentFiles) return;
+  private async copyAttachments(
+    task: any,
+    workspaceDir: string,
+  ): Promise<string[] | null> {
+    if (!task.attachmentFiles) return null;
 
     let attachments: {
       filename: string;
@@ -350,10 +364,10 @@ export class AgentService {
           ? JSON.parse(task.attachmentFiles)
           : task.attachmentFiles;
     } catch {
-      return;
+      return null;
     }
 
-    if (!Array.isArray(attachments) || attachments.length === 0) return;
+    if (!Array.isArray(attachments) || attachments.length === 0) return null;
 
     const uploadsDir = path.join(process.cwd(), 'uploads');
     const names: string[] = [];
@@ -376,7 +390,7 @@ export class AgentService {
         `Copied ${names.length} attachment(s) to workspace: ${names.join(', ')}`,
       );
     }
-  }
+    return names.length > 0 ? names : null;
 
   /**
    * Execute a command locally (fallback when Docker is not available).
