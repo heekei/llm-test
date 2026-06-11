@@ -339,7 +339,11 @@ export class AgentService {
   private async copyAttachments(task: any, workspaceDir: string) {
     if (!task.attachmentFiles) return;
 
-    let attachments: { filename: string; originalName: string; mimeType: string }[];
+    let attachments: {
+      filename: string;
+      originalName: string;
+      mimeType: string;
+    }[];
     try {
       attachments =
         typeof task.attachmentFiles === 'string'

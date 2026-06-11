@@ -22,16 +22,47 @@ import { RunTaskDto } from './dto/run-task.dto';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_EXTENSIONS = new Set([
-  '.txt', '.md', '.csv', '.json', '.js', '.ts', '.jsx', '.tsx',
-  '.py', '.java', '.c', '.cpp', '.h', '.rs', '.go', '.rb', '.php',
-  '.html', '.css', '.xml', '.yaml', '.yml', '.toml', '.ini', '.cfg',
-  '.log', '.sql', '.sh', '.bat',
-  '.pdf', '.png', '.jpg', '.jpeg', '.gif',
+  '.txt',
+  '.md',
+  '.csv',
+  '.json',
+  '.js',
+  '.ts',
+  '.jsx',
+  '.tsx',
+  '.py',
+  '.java',
+  '.c',
+  '.cpp',
+  '.h',
+  '.rs',
+  '.go',
+  '.rb',
+  '.php',
+  '.html',
+  '.css',
+  '.xml',
+  '.yaml',
+  '.yml',
+  '.toml',
+  '.ini',
+  '.cfg',
+  '.log',
+  '.sql',
+  '.sh',
+  '.bat',
+  '.pdf',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.gif',
 ]);
 
 function slugFilename(original: string): string {
   const ext = extname(original).toLowerCase();
-  const base = original.slice(0, original.length - ext.length).replace(/[^a-zA-Z0-9_-]/g, '_');
+  const base = original
+    .slice(0, original.length - ext.length)
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
   return `${base}-${randomUUID()?.slice(0, 8) || Date.now().toString(36)}${ext}`;
 }
 
@@ -86,7 +117,7 @@ export class TasksController {
       },
     }),
   )
-  async uploadAttachment(@UploadedFile() file: Express.Multer.File) {
+  uploadAttachment(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded');
 
     return {
