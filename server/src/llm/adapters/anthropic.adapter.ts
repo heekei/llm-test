@@ -416,12 +416,13 @@ export class AnthropicAdapter implements LlmAdapter {
    * Maps ConversationMessage[] to Anthropic messages format with tools.
    */
   private buildAgentBody(params: AgentChatParams, stream: boolean): any {
+    const hasTools = params.tools && params.tools.length > 0;
     const body: any = {
       model: params.modelId,
       max_tokens: params.maxTokens,
       temperature: params.temperature,
       stream,
-      messages: this.mapMessagesToAnthropic(params.messages),
+      messages: this.mapMessagesToAnthropic(hasTools, params),
     };
 
     if (params.systemPrompt) {
@@ -458,8 +459,11 @@ export class AnthropicAdapter implements LlmAdapter {
     return body;
   }
 
-  private mapMessagesToAnthropic(messages: ConversationMessage[]): any[] {
-    return messages.map((msg) => {
+  private mapMessagesToAnthropic(
+    hasTools: boolean,
+    params: AgentChatParams,
+  ): any[] {
+    return params.messages.map((msg) => {
       const content: any[] = [];
       let hasToolUse = false;
       for (const block of msg.content) {
@@ -489,6 +493,31 @@ export class AnthropicAdapter implements LlmAdapter {
         if (!hasText) {
           content.unshift({ type: 'text', text: '' });
         }
+      }
+      // Some providers (Kimi) require that assistant messages containing
+      // tool_use blocks also include a reasoning_content / thinking block
+      // when extended thinking was enabled. Since we don't persist thinking
+      // blocks across turns, strip tool_use-only assistant messages
+      // when extended thinking is active to avoid API errors.
+      if (
+        msg.role === 'assistant' &&
+        hasToolUse &&
+        !hasTools
+      ) {
+        // Replace tool_use blocks with a text note to keep conversation flowing
+        const toolNames = content
+          .filter((c) => c.type === 'tool_use')
+          .map((c) => c.name)
+          .join(', ');
+        return {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: `[系统提示: 上一轮调用了工具 ${toolNames}，结果已处理。请继续。]`,
+            },
+          ],
+        };
       }
       return { role: msg.role, content };
     });
