@@ -416,7 +416,7 @@ export class AnthropicAdapter implements LlmAdapter {
    * Maps ConversationMessage[] to Anthropic messages format with tools.
    */
   private buildAgentBody(params: AgentChatParams, stream: boolean): any {
-    const hasTools = params.tools && params.tools.length > 0;
+    const hasTools = params.tools != null && params.tools.length > 0;
     const body: any = {
       model: params.modelId,
       max_tokens: params.maxTokens,
@@ -430,8 +430,8 @@ export class AnthropicAdapter implements LlmAdapter {
     }
 
     // Map tool definitions to Anthropic tools format
-    if (hasTools) {
-      body.tools = params.tools!.map((t) => ({
+    if (hasTools && params.tools) {
+      body.tools = params.tools.map((t) => ({
         name: t.name,
         description: t.description,
         input_schema: t.inputSchema,
